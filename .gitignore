@@ -1,0 +1,15 @@
+# 作り直せる生成物
+build/
+.venv/
+Packages/*/.build/
+Packages/*/.swiftpm/
+__pycache__/
+
+# Xcode の利用者ごとの設定
+xcuserdata/
+*.xcuserstate
+
+.DS_Store
+
+# 実験の設計書 (参加者に目的が知られないよう公開しない)
+docs/

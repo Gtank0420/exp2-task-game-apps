@@ -1,0 +1,146 @@
+# xcodegen の設定。Xcode プロジェクトはここから生成する (手で .xcodeproj を編集しない)。
+# 課題アプリ (Exp2Task、iPad) とゲームアプリ (Exp2Game、研究室の iPhone) の2つを含む。
+#   xcodegen generate
+# 署名は無料の Apple アカウント (Personal Team) で行う。DEVELOPMENT_TEAM はそのアカウントの Team ID。
+# ここに書いておかないと、xcodegen generate のたびに Xcode で選んだ署名の設定が消える。
+name: Exp2Task
+options:
+  bundleIdPrefix: com.ryogashimizu
+  deploymentTarget:
+    iOS: "17.0"
+packages:
+  ExperimentCore:
+    path: Packages/ExperimentCore
+targets:
+  Exp2Task:
+    type: application
+    platform: iOS
+    sources: [App, Shared]
+    dependencies:
+      - package: ExperimentCore
+        product: ExperimentCore
+      - package: ExperimentCore
+        product: RecordingCore
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: 実験2課題
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
+        UIRequiresFullScreen: true
+        # 時計を見せない (設計書5章)。ステータスバーの時刻をすべての画面で隠す
+        UIStatusBarHidden: true
+        UIViewControllerBasedStatusBarAppearance: false
+        # 説明の画面の字 (視認性の高い UD フォント、SIL OFL。App/Fonts、app_decisions #69)
+        UIAppFonts:
+          - BIZUDPGothic-Regular.ttf
+          - BIZUDPGothic-Bold.ttf
+        # 書き出したファイルをファイルアプリの「この iPad 内」から見られるようにする
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
+        # AirPods の頭の動きの記録 (開発用モードの記録テスト、app_decisions #71)
+        NSMotionUsageDescription: 頭の動きを記録するため、AirPods の動きを読み取ります
+        # スタンドに横置き (docs/app_decisions.md #18)。左右どちら向きに置いても使えるよう横向き2つを許す
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ryogashimizu.Exp2Task
+        # アプリのアイコン (Assets.xcassets/AppIcon、図形だけで描いたもの)
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: "2"
+        MARKETING_VERSION: 0.1.0
+        CURRENT_PROJECT_VERSION: 1
+        SWIFT_VERSION: "5.0"
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: QN3FXYZSB3
+        GENERATE_INFOPLIST_FILE: NO
+  # シミュレータで画面を通しで操作する UI テスト (UITests/SessionFlowUITests.swift)
+  Exp2TaskUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies:
+      - target: Exp2Task
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ryogashimizu.Exp2TaskUITests
+        TARGETED_DEVICE_FAMILY: "2"
+        SWIFT_VERSION: "5.0"
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: QN3FXYZSB3
+        GENERATE_INFOPLIST_FILE: YES
+  # ゲームアプリ (研究室の iPhone 12 Pro)。設計書4章・9.2章
+  Exp2Game:
+    type: application
+    platform: iOS
+    sources: [GameApp, Shared]
+    dependencies:
+      - package: ExperimentCore
+        product: GameCore
+      - package: ExperimentCore
+        product: RecordingCore
+    info:
+      path: GameApp/Info.plist
+      properties:
+        CFBundleDisplayName: 実験2ゲーム
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
+        UIRequiresFullScreen: true
+        # 時計を見せない (設計書5章)。iPhone はステータスバーに時刻が出るので、すべての画面で隠す
+        UIStatusBarHidden: true
+        UIViewControllerBasedStatusBarAppearance: false
+        # 書き出したファイルをファイルアプリの「この iPhone 内」から見られるようにする
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
+        # 机に画面を上にして置き、手に持って遊ぶ。縦向きに固定する
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSMotionUsageDescription: スマホを手に持っているかを調べるため、iPhone の動きを記録します
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ryogashimizu.Exp2Game
+        # アプリのアイコン (Assets.xcassets/AppIcon、図形だけで描いたもの)
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: "1"
+        MARKETING_VERSION: 0.1.0
+        CURRENT_PROJECT_VERSION: 1
+        SWIFT_VERSION: "5.0"
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: QN3FXYZSB3
+        GENERATE_INFOPLIST_FILE: NO
+  # シミュレータで画面を通しで操作する UI テスト (GameUITests/GameFlowUITests.swift)
+  Exp2GameUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [GameUITests]
+    dependencies:
+      - target: Exp2Game
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ryogashimizu.Exp2GameUITests
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "5.0"
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: QN3FXYZSB3
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  Exp2Task:
+    build:
+      targets:
+        Exp2Task: all
+    test:
+      targets:
+        - package: ExperimentCore/ExperimentCoreTests
+        - Exp2TaskUITests
+  Exp2Game:
+    build:
+      targets:
+        Exp2Game: all
+    test:
+      targets:
+        - package: ExperimentCore/GameCoreTests
+        - Exp2GameUITests

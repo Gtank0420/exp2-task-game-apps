@@ -1,0 +1,4 @@
+# tools/ の Python スクリプト用 (読み込み関数と検証スクリプトで使う。段階6)
+pandas
+# 統合スクリプト (tools/build_timeline.py --figures) の確認用の図。2026-11-01 に追加
+matplotlib

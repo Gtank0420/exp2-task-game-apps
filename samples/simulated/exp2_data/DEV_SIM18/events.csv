@@ -1,0 +1,58 @@
+participant_id,event_index,unix_ms,mono_ms,segment,part,event_type,detail
+DEV_SIM18,0,1794852000000,67000000,,,session_create,mode=dev
+DEV_SIM18,1,1794852000000,67000000,,,screen_show,shake_start
+DEV_SIM18,2,1794852000000,67000000,,,shake_prompt_on,
+DEV_SIM18,3,1794852003010,67003010,,,button,experimenter_next screen=shake_start
+DEV_SIM18,4,1794852003010,67003010,,,shake_prompt_off,
+DEV_SIM18,5,1794852003010,67003010,practice,0,screen_show,intro_practice
+DEV_SIM18,6,1794852005020,67005020,practice,0,button,participant_start screen=intro_practice
+DEV_SIM18,7,1794852005020,67005020,practice,0,screen_show,flash_white
+DEV_SIM18,8,1794852005020,67005020,practice,0,flash_white_on,
+DEV_SIM18,9,1794852006020,67006020,practice,0,screen_show,flash_black
+DEV_SIM18,10,1794852006020,67006020,practice,0,flash_black_on,
+DEV_SIM18,11,1794852007020,67007020,practice,0,flash_off,
+DEV_SIM18,12,1794852007020,67007020,practice,0,segment_start,planned_duration_ms=180000 start_elapsed_ms=0
+DEV_SIM18,13,1794852187020,67187020,practice,0,segment_end,reason=timeout end_elapsed_ms=180000
+DEV_SIM18,14,1794852187020,67187020,practice,0,screen_show,end_practice
+DEV_SIM18,15,1794852189020,67189020,practice,0,button,experimenter_next screen=end_practice
+DEV_SIM18,16,1794852189020,67189020,game_only,0,screen_show,intro_game_only
+DEV_SIM18,17,1794852191030,67191030,game_only,0,button,experimenter_next screen=intro_game_only
+DEV_SIM18,18,1794852191030,67191030,game_only,0,screen_show,flash_white
+DEV_SIM18,19,1794852191030,67191030,game_only,0,flash_white_on,
+DEV_SIM18,20,1794852192030,67192030,game_only,0,screen_show,flash_black
+DEV_SIM18,21,1794852192030,67192030,game_only,0,flash_black_on,
+DEV_SIM18,22,1794852193030,67193030,game_only,0,flash_off,
+DEV_SIM18,23,1794852193030,67193030,game_only,0,segment_start,planned_duration_ms=180000 start_elapsed_ms=0
+DEV_SIM18,24,1794852193030,67193030,game_only,0,screen_show,game_only
+DEV_SIM18,25,1794852373030,67373030,game_only,0,segment_end,reason=timeout end_elapsed_ms=180000
+DEV_SIM18,26,1794852373030,67373030,game_only,0,screen_show,end_game_only
+DEV_SIM18,27,1794852375030,67375030,game_only,0,button,experimenter_next screen=end_game_only
+DEV_SIM18,28,1794852375030,67375030,focus,0,screen_show,intro_focus
+DEV_SIM18,29,1794852377040,67377040,focus,0,button,participant_start screen=intro_focus
+DEV_SIM18,30,1794852377040,67377040,focus,0,screen_show,flash_white
+DEV_SIM18,31,1794852377040,67377040,focus,0,flash_white_on,
+DEV_SIM18,32,1794852378040,67378040,focus,0,screen_show,flash_black
+DEV_SIM18,33,1794852378040,67378040,focus,0,flash_black_on,
+DEV_SIM18,34,1794852379040,67379040,focus,0,flash_off,
+DEV_SIM18,35,1794852379040,67379040,focus,0,segment_start,planned_duration_ms=180000 start_elapsed_ms=0
+DEV_SIM18,36,1794852559040,67559040,focus,0,segment_end,reason=timeout end_elapsed_ms=180000
+DEV_SIM18,37,1794852559040,67559040,focus,0,screen_show,end_focus
+DEV_SIM18,38,1794852561040,67561040,focus,0,button,experimenter_next screen=end_focus
+DEV_SIM18,39,1794852561040,67561040,free,0,screen_show,intro_free
+DEV_SIM18,40,1794852567050,67567050,free,0,button,participant_start screen=intro_free
+DEV_SIM18,41,1794852567050,67567050,free,0,screen_show,flash_white
+DEV_SIM18,42,1794852567050,67567050,free,0,flash_white_on,
+DEV_SIM18,43,1794852568050,67568050,free,0,screen_show,flash_black
+DEV_SIM18,44,1794852568050,67568050,free,0,flash_black_on,
+DEV_SIM18,45,1794852569050,67569050,free,0,flash_off,
+DEV_SIM18,46,1794852569050,67569050,free,0,segment_start,planned_duration_ms=1200000 start_elapsed_ms=0
+DEV_SIM18,47,1794853769050,68769050,free,0,segment_end,reason=timeout end_elapsed_ms=1200000
+DEV_SIM18,48,1794853769050,68769050,free,0,screen_show,end_free
+DEV_SIM18,49,1794853771050,68771050,free,0,button,experimenter_next screen=end_free
+DEV_SIM18,50,1794853771050,68771050,,,screen_show,shake_end
+DEV_SIM18,51,1794853771050,68771050,,,shake_prompt_on,
+DEV_SIM18,52,1794853774060,68774060,,,button,experimenter_next screen=shake_end
+DEV_SIM18,53,1794853774060,68774060,,,shake_prompt_off,
+DEV_SIM18,54,1794853774060,68774060,,,screen_show,end_input
+DEV_SIM18,55,1794853776070,68776070,,,meta_updated,completed data_consent=true
+DEV_SIM18,56,1794853776070,68776070,,,screen_show,done

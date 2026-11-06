@@ -1,0 +1,25 @@
+{
+  "app" : {
+    "build" : "1",
+    "version" : "0.1.0"
+  },
+  "config" : {
+    "flush_interval_ms" : 1000,
+    "gap_threshold_ms" : 500,
+    "rate_window_ms" : 10000,
+    "reference_hz" : 50
+  },
+  "created_at" : {
+    "mono_ms" : 258841810,
+    "unix_ms" : 1793770987545
+  },
+  "created_local_time" : "2026-11-04T14:43:07.545+09:00",
+  "device" : {
+    "model" : "iPad13,4",
+    "system_name" : "iPadOS",
+    "system_version" : "26.5.2"
+  },
+  "test_id" : "IMUTEST_20261104_144307",
+  "time_zone" : "Asia/Tokyo",
+  "utc_offset_seconds" : 32400
+}

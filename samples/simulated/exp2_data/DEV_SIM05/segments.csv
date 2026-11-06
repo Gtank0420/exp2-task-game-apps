@@ -1,0 +1,5 @@
+participant_id,segment,part,order,planned_duration_ms,start_unix_ms,start_mono_ms,end_unix_ms,end_mono_ms,start_elapsed_ms,end_elapsed_ms,end_reason,n_shown,n_answered
+DEV_SIM05,practice,0,0,180000,1794805207020,54007020,1794805387020,54187020,0,180000,timeout,140,139
+DEV_SIM05,game_only,0,1,180000,1794805393030,54193030,1794805573030,54373030,0,180000,timeout,0,0
+DEV_SIM05,focus,0,2,180000,1794805579040,54379040,1794805759040,54559040,0,180000,timeout,138,137
+DEV_SIM05,free,0,3,1200000,1794805769050,54569050,1794806969050,55769050,0,1200000,timeout,463,462

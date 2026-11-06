@@ -1,0 +1,120 @@
+{
+  "app" : {
+    "build" : "0",
+    "version" : "simulate"
+  },
+  "completed" : true,
+  "completed_at" : {
+    "mono_ms" : 66776070,
+    "unix_ms" : 1794846576070
+  },
+  "config_snapshot" : {
+    "digit_max" : 9,
+    "digit_min" : 2,
+    "experimenter_long_press_ms" : 1000,
+    "flash_black_ms" : 1000,
+    "flash_white_ms" : 1000,
+    "heartbeat_interval_ms" : 1000,
+    "is_dev_mode" : true,
+    "max_items_per_segment" : 5000,
+    "oral_questions" : [
+      {
+        "choices" : [
+          "感じた",
+          "少し感じた",
+          "感じなかった"
+        ],
+        "key" : "oral_q1_observed",
+        "text" : "見られている感じがしたか"
+      },
+      {
+        "choices" : [
+          "楽しかった",
+          "少し楽しかった",
+          "楽しくなかった"
+        ],
+        "key" : "oral_q2_game_fun",
+        "text" : "ゲームは楽しかったか"
+      }
+    ],
+    "rng_algorithm" : "splitmix64",
+    "schema_version" : 2,
+    "segments" : [
+      {
+        "duration_ms" : 180000,
+        "id" : "practice",
+        "seed" : 20261101
+      },
+      {
+        "duration_ms" : 180000,
+        "id" : "game_only"
+      },
+      {
+        "duration_ms" : 180000,
+        "id" : "focus",
+        "seed" : 20261103
+      },
+      {
+        "duration_ms" : 1200000,
+        "id" : "free",
+        "seed" : 20261104
+      }
+    ],
+    "simulated_participant" : {
+      "break_max_ms" : 90000,
+      "break_min_ms" : 10000,
+      "break_probability" : 0.009491847335596867,
+      "error_rate" : 0.0474908574423945,
+      "experimenter_delay_ms" : 2000,
+      "free_instruction_read_ms" : 6000,
+      "participant_start_delay_ms" : 2000,
+      "rt_log_sigma" : 0.3,
+      "rt_median_ms" : 1168,
+      "rt_min_ms" : 250,
+      "seed" : 8654657426847686,
+      "shake_duration_ms" : 3000
+    },
+    "texts" : {
+      "focus_instruction" : "集中して解いてください",
+      "free_end" : "実験者を呼んでください",
+      "free_instruction" : "これから20分間、計算問題に取り組んでください。横のスマホのゲームは、休憩として好きなときに好きなだけ遊んでかまいません。どちらをどれだけやったかで評価することはありません。",
+      "game_only_end" : "ゲームの時間は終わりです",
+      "game_only_instruction" : "横のスマホのゲームで遊んでください。\n両方のゲームを試してください",
+      "resume_prompt" : "実験者を呼んでください",
+      "segment_end" : "終了です。そのままお待ちください",
+      "shake_prompt" : "大きく頭を振ってください",
+      "start_button" : "開始",
+      "waiting" : "そのままお待ちください"
+    }
+  },
+  "created_at" : {
+    "mono_ms" : 65000000,
+    "unix_ms" : 1794844800000
+  },
+  "created_local_time" : "2026-11-17T01:00:00.000+09:00",
+  "data_consent" : true,
+  "device" : {
+    "model" : "virtual-clock",
+    "system_name" : "macOS",
+    "system_version" : "Version 26.6.2 (Build 25G83)"
+  },
+  "handedness" : "right",
+  "memo" : "疑似参加者 (開発用モード)",
+  "mode" : "dev",
+  "oral_answers" : [
+    {
+      "answer" : "少し感じた",
+      "key" : "oral_q1_observed",
+      "question" : "見られている感じがしたか"
+    },
+    {
+      "answer" : "楽しかった",
+      "key" : "oral_q2_game_fun",
+      "question" : "ゲームは楽しかったか"
+    }
+  ],
+  "participant_id" : "DEV_SIM16",
+  "schema_version" : 2,
+  "timezone_identifier" : "Asia/Tokyo",
+  "timezone_offset_seconds" : 32400
+}

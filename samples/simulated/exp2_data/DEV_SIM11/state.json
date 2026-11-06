@@ -1,0 +1,10 @@
+{
+  "part" : 0,
+  "part_start_elapsed_ms" : 1200000,
+  "segment_elapsed_ms" : 1200000,
+  "step" : "done",
+  "updated_at" : {
+    "mono_ms" : 61776070,
+    "unix_ms" : 1794828576070
+  }
+}
