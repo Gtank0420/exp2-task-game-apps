@@ -75,7 +75,9 @@ public struct ExperimentTexts: Codable, Equatable, Sendable {
     /// 計算のみの区間の終了表示。参加者が「次へ」で進めるので「お待ちください」をやめた (app_decisions #61)
     public var segmentEnd = "計算問題のパートは終わりです"
     /// 設計書5章の教示をそのまま使う (app_decisions #10)。
-    public var freeInstruction = "これから20分間、計算問題に取り組んでください。横のスマホのゲームは、休憩として好きなときに好きなだけ遊んでかまいません。どちらをどれだけやったかで評価することはありません。"
+    /// 2026-11-08: 途中で休憩してよいこと、自分のスマホを見てよいこと (本人のスマホを預からなくなった) を足し、
+    /// 文の途中で折り返さないよう1文ずつ改行した (app_decisions #79、#80)
+    public var freeInstruction = "これから20分間、計算問題に取り組んでください。\n横のスマホのゲームは、休憩として\n好きなときに好きなだけ遊んでかまいません。\n途中で飽きたら、休憩したり、自分のスマホを見たりしてもかまいません。\nどちらをどれだけやったかで評価することはありません。"
     /// 自由区間の終了表示。このあと参加者が頭振りと質問に進むので、ここでは実験者を呼ばない (app_decisions #61)
     public var freeEnd = "計算問題の時間は終わりです"
     /// アプリが落ちて再起動したとき (app_decisions #1, #20)
@@ -214,12 +216,24 @@ extension ParticipantGuide {
         explanationPages: [
             GuidePage(
                 title: "はじめに",
-                body: "この実験では、作業をしているときの頭の動きを記録します。\nここからは、この iPad の画面の案内に沿って進めてください。全体でおよそ30分かかります。",
+                body: "この実験では、作業をしているときの頭の動きを記録します。\nここからは、この iPad の画面の案内に沿って進めてください。\n全体でおよそ30分かかります。",
                 illustration: "devices",
                 points: [
-                    GuidePoint(icon: "airpodspro", text: "耳の AirPods は、最後まで外さないでください"),
-                    GuidePoint(icon: "ipad.and.iphone", text: "iPad と横のスマホは、置いてある場所を変えないでください"),
-                    GuidePoint(icon: "person.wave.2.fill", text: "分からないことや困ったことがあれば、近くにいる実験者に声をかけてください"),
+                    GuidePoint(icon: "airpodspro", text: "耳の AirPods は、\n最後まで外さないでください"),
+                    GuidePoint(icon: "ipad.and.iphone", text: "iPad と横のスマホは、\n置いてある場所を変えないでください"),
+                    GuidePoint(icon: "person.wave.2.fill", text: "分からないことや困ったことがあれば、\n近くにいる実験者に声をかけてください"),
+                ]),
+            // 2026-11-08 に足した (app_decisions #79)。1台版の「使用する機器・取得するデータ」(single_decisions S51、S57) を2台版に合わせた
+            GuidePage(
+                title: "使用する機器・取得するデータ",
+                body: "この実験では、次の3つで記録をとります。",
+                points: [
+                    GuidePoint(icon: "airpodspro", text: "AirPods: 頭の動き"),
+                    GuidePoint(icon: "ipad.landscape", text: "iPad: 計算の回答と、その時刻"),
+                    GuidePoint(icon: "iphone", text: "横のスマホ: ゲームの操作と、スマホの動き"),
+                    GuidePoint(icon: "speaker.wave.2.fill", text: "パートの終わりに、iPad から音が鳴ります。\nゲームでは、スマホから効果音が鳴ります"),
+                    GuidePoint(icon: "lock.shield.fill",
+                               text: "記録したデータは、作業中の状態を分析する目的だけに使います。\n研究の目的以外には使わず、個人が特定される形で外部に公開することはありません"),
                 ]),
             GuidePage(
                 title: "実験の流れ",
@@ -231,10 +245,10 @@ extension ParticipantGuide {
                     GuidePoint(icon: "plus.forwardslash.minus", text: "計算問題", detail: "20分"),
                 ],
                 points: [
-                    GuidePoint(icon: "doc.text.fill", text: "それぞれのパートの前に、やり方が画面に出ます。"),
-                    GuidePoint(icon: "speaker.wave.2.fill", text: "パートの時間が終わると、iPad から音が鳴り、画面が切り替わります。"),
+                    GuidePoint(icon: "doc.text.fill", text: "それぞれのパートの前に、\nやり方が画面に出ます。"),
+                    GuidePoint(icon: "speaker.wave.2.fill", text: "パートの時間が終わると、\niPad から音が鳴り、\n画面が切り替わります。"),
                     GuidePoint(icon: "eye.slash.fill", text: "残り時間は画面に出ません。"),
-                    GuidePoint(icon: "arrow.left.and.right", text: "最初と最後に、頭を大きく振ってもらう合図があります。"),
+                    GuidePoint(icon: "arrow.left.and.right", text: "最初と最後に、\n頭を大きく振ってもらう合図があります。"),
                 ]),
             GuidePage(
                 title: "計算問題のやり方",
@@ -243,7 +257,8 @@ extension ParticipantGuide {
                 points: [
                     GuidePoint(icon: "arrow.right.circle.fill", text: "押すとすぐに次の問題に変わります"),
                     GuidePoint(icon: "eye.slash.fill", text: "正解かどうかは表示されません"),
-                    GuidePoint(icon: "arrow.uturn.backward.circle.fill", text: "押し間違えても直せません。そのまま次の問題に進んでください"),
+                    // 語の途中で折り返さないよう、句の切れ目で改行する (2026-11-08、app_decisions #79。1台版と同じ)
+                    GuidePoint(icon: "arrow.uturn.backward.circle.fill", text: "押し間違えても直せません。\nそのまま次の問題に\n進んでください"),
                 ],
                 examples: [
                     GuideExample(a: 3, b: 5, caption: "3 + 5 = 8 → 8 を押す"),
@@ -256,13 +271,13 @@ extension ParticipantGuide {
         gameOnlyLead: "スマホには2つのゲームがあります。両方とも試してください。\n選ぶ画面で遊びたいゲームを押すと始まります。",
         gameHowTos: [
             GameHowTo(name: "つみあげ",
-                      howTo: "左右に動くブロックを、画面をタップして落とし、積み上げます。下の段からはみ出した部分は削れます。",
+                      howTo: "左右に動くブロックを、\n画面をタップして落とし、\n積み上げます。\n下の段からはみ出した\n部分は削れます。",
                       image: "guide_stack", icon: "hand.tap.fill"),
             GameHowTo(name: "2048",
-                      howTo: "上下左右にスワイプして、同じ数字のマスを合体させます。途中でやめても、次は続きから遊べます。",
+                      howTo: "上下左右にスワイプして、\n同じ数字のマスを\n合体させます。\n途中でやめても、\n次は続きから遊べます。",
                       image: "guide_merge", icon: "arrow.up.and.down.and.arrow.left.and.right"),
         ],
-        gameOnlyEndRule: "3分たつと、iPad から音が鳴ります。そうしたら、",
+        gameOnlyEndRule: "3分たつと、iPad から音が鳴ります。\nそうしたら、",
         gameOnlyEndSteps: [
             GuidePoint(icon: "house.fill", text: "ゲームの右上の家のマークで、選ぶ画面に戻す"),
             GuidePoint(icon: "iphone", text: "スマホを元の場所に置く"),
@@ -270,7 +285,8 @@ extension ParticipantGuide {
         ],
         focusEndAction: "「次へ」を押してください",
         gameOnlyEndAction: "ゲームの右上の家のマークで選ぶ画面に戻し、\nスマホを元の場所に置いてから「次へ」を押してください",
-        freeEndAction: "スマホを使っていたら、選ぶ画面に戻して元の場所に置いてください。\nそれから「次へ」を押してください",
+        // 2026-11-08: 本人のスマホを預からなくなった (app_decisions #80) ので、ゲーム用のスマホだと分かるよう「横の」を足した
+        freeEndAction: "横のスマホを使っていたら、選ぶ画面に戻して元の場所に置いてください。\nそれから「次へ」を押してください",
         questionsTitle: "最後に、2つの質問に答えてください",
         debrief: GuidePage(title: "ご協力ありがとうございました", body: """
         この実験の目的を説明します。
@@ -334,6 +350,11 @@ public struct ExperimentConfig: Codable, Equatable, Sendable {
     public var simulatedParticipant: SimulatedParticipantConfig?
     /// 開発用モードかどうか。meta.json に残し、本番データと混ざらないようにする。
     public var isDevMode: Bool
+    /// 音声ガイド (説明の画面と、区間の前後の画面などで、説明の音声を AirPods に流す。2026-11-08 から、app_decisions #75)。
+    /// nil なら流さない。これより前の記録 (config_snapshot) にはないので省略可能
+    public var speech: SpeechGuideConfig? = nil
+    /// 区間の終了画面で音声を流し始めるまで (ms)。区間の終わりの音 (Chime、約 0.75 秒) と重ならないよう、そのあとに流す
+    public var speechAfterChimeDelayMs: Int? = nil
 
     public func segment(_ id: SegmentID) -> SegmentConfig? {
         segments.first { $0.id == id }
@@ -349,7 +370,8 @@ extension ExperimentConfig {
     /// 種は本番開始後に変えないこと (全員が同じ系列を解く前提が崩れる)。
     /// 計算のみの種は、旧「集中ブロック」の種を引き継ぐ (app_decisions #58)。
     public static let production = ExperimentConfig(
-        schemaVersion: 4,
+        // 5: 音声ガイドの speech_start / speech_end、区間の始まりの点滅をやめた (2026-11-08、app_decisions #75、#78)
+        schemaVersion: 5,
         segments: [
             SegmentConfig(id: .focus, durationMs: 3 * 60_000, seed: 20_261_103),
             SegmentConfig(id: .gameOnly, durationMs: 3 * 60_000, seed: nil),
@@ -359,8 +381,9 @@ extension ExperimentConfig {
         digitMax: 9,
         maxItemsPerSegment: 5_000,
         rngAlgorithm: "splitmix64",
-        flashWhiteMs: 1_000,
-        flashBlackMs: 1_000,
+        // 区間の始まりの点滅 (カメラとの時刻合わせの印) はしない。カメラで撮らないため (2026-11-08、app_decisions #78)
+        flashWhiteMs: 0,
+        flashBlackMs: 0,
         experimenterLongPressMs: 1_000,
         heartbeatIntervalMs: 1_000,
         texts: ExperimentTexts(),
@@ -373,7 +396,9 @@ extension ExperimentConfig {
         guide: .standard,
         headphone: .standard,
         simulatedParticipant: nil,
-        isDevMode: false
+        isDevMode: false,
+        speech: .standard,
+        speechAfterChimeDelayMs: 1_200
     )
 
     /// 開発用モードの区間の長さ (ミリ秒)。自由区間を1分にするなど、通しの動作確認を短くする。

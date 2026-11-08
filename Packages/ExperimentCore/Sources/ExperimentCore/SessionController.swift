@@ -360,10 +360,16 @@ public final class SessionController {
         try saveState(now)
     }
 
+    /// 区間の始まり。点滅 (白 → 黒) のあとに区間を始める。点滅の長さが 0 なら点滅せずにすぐ始める
+    /// (2026-11-08 からカメラを使わないので点滅しない。app_decisions #78)
     private func startFlash(at now: Timestamp) throws {
         step = .segmentRunning
         flashStart = now
         partStart = nil
+        guard config.flashWhiteMs + config.flashBlackMs > 0 else {
+            try startPart(at: now)
+            return
+        }
         try show(.flash(white: true), at: now)
         try log(.flashWhiteOn, at: now)
         try saveState(now)

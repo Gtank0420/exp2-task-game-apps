@@ -192,7 +192,7 @@ final class SessionStoreTests: XCTestCase {
         let config = try XCTUnwrap(json["config_snapshot"] as? [String: Any])
         let segments = try XCTUnwrap(config["segments"] as? [[String: Any]])
         XCTAssertEqual(segments.map { $0["duration_ms"] as? Int }, [20_000, 20_000, 60_000])
-        XCTAssertEqual(config["flash_white_ms"] as? Int, 1000)
+        XCTAssertEqual(config["flash_white_ms"] as? Int, 0, "2026-11-08 から点滅しない (app_decisions #78)")
         XCTAssertEqual(writer.readMeta()?.oralAnswers.map(\.key), ["oral_q1_observed", "oral_q2_game_fun"])
     }
 

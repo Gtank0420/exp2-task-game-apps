@@ -165,7 +165,7 @@ final class HeadphoneMotionTests: XCTestCase {
     /// 本番の設定には AirPods の記録の設定が入り、それより前の config_snapshot (キーなし) も読める
     func testConfigSnapshotHasHeadphone() throws {
         XCTAssertEqual(ExperimentConfig.production.headphone, .standard)
-        XCTAssertEqual(ExperimentConfig.production.schemaVersion, 4)
+        XCTAssertEqual(ExperimentConfig.production.schemaVersion, 5)
         XCTAssertEqual(ExperimentConfig.dev().headphone, .standard)
         var json = try JSONSerialization.jsonObject(with: ExperimentJSON.encoder().encode(ExperimentConfig.production)) as! [String: Any]
         XCTAssertNotNil(json["headphone"])

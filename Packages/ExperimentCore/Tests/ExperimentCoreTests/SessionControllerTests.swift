@@ -62,11 +62,17 @@ final class SessionControllerTests: XCTestCase {
         }
     }
 
-    /// 参加者の「開始」から、点滅が終わって出題 (またはゲームのみ区間) が始まるまで進める。
+    /// 参加者の「開始」から、出題 (またはゲームのみ区間) が始まるまで進める。点滅がある設定なら点滅が終わるまで
+    /// (2026-11-08 から本番は点滅しない、app_decisions #78)
     private func startSegment(_ c: SessionController) {
         c.participantStart()
-        XCTAssertEqual(c.screen, .flash(white: true))
-        run(c, ms: 2_000)
+        let flashMs = c.config.flashWhiteMs + c.config.flashBlackMs
+        if flashMs > 0 {
+            XCTAssertEqual(c.screen, .flash(white: true))
+            run(c, ms: flashMs)
+        } else {
+            XCTAssertNotEqual(c.screen, .flash(white: true), "点滅せずにすぐ始まる")
+        }
     }
 
     /// 引き継ぎから、説明のページと開始時の頭振りを通って、計算のみの開始画面まで進める。
@@ -94,6 +100,19 @@ final class SessionControllerTests: XCTestCase {
     }
 
     // MARK: - 本番の長さで通しで進める
+
+    func testFlashStillWorksWhenConfigured() throws {
+        // 点滅の長さを設定すれば、前と同じく白 → 黒のあとに区間が始まる (点滅をやめたのは本番の設定だけ)
+        var config = ExperimentConfig.dev(shortDurations: true, simulatedParticipant: nil)
+        config.flashWhiteMs = 1_000
+        config.flashBlackMs = 1_000
+        let c = try newController(config)
+        goToFirstIntro(c)
+        startSegment(c)
+        guard case .problem = c.screen else { return XCTFail("出題されていない") }
+        let types = try records("events.csv").map { $0["event_type"]! }.filter { $0.hasPrefix("flash") || $0 == "segment_start" }
+        XCTAssertEqual(types, ["flash_white_on", "flash_black_on", "flash_off", "segment_start"])
+    }
 
     func testFullRunWithProductionDurations() throws {
         let config = ExperimentConfig.production
@@ -184,16 +203,16 @@ final class SessionControllerTests: XCTestCase {
         }
         XCTAssertTrue(items.filter { !($0["response"] ?? "").isEmpty }.allSatisfy { $0["is_correct"] == "1" })
 
-        // events.csv: 通し番号が連続、時刻が逆戻りしない、点滅は白→黒→終了
+        // events.csv: 通し番号が連続、時刻が逆戻りしない。点滅はしない (app_decisions #78) ので、区間は「開始」を押した時刻から
         let events = try records("events.csv")
         XCTAssertEqual(events.map { Int($0["event_index"]!)! }, Array(0..<events.count))
         let monos = events.map { Int($0["mono_ms"]!)! }
         XCTAssertEqual(monos, monos.sorted())
-        let flashTypes = events.map { $0["event_type"]! }.filter { $0.hasPrefix("flash") || $0 == "segment_start" }
-        XCTAssertEqual(flashTypes, Array(repeating: ["flash_white_on", "flash_black_on", "flash_off", "segment_start"], count: 3).flatMap { $0 })
-        let flashOn = events.filter { $0["event_type"] == "flash_white_on" }.map { Int($0["mono_ms"]!)! }
+        XCTAssertFalse(events.contains { $0["event_type"]!.hasPrefix("flash") })
+        let startPressed = events.filter { $0["event_type"] == "button" && ($0["detail"] ?? "").hasPrefix("participant_start screen=intro_") }
+            .map { Int($0["mono_ms"]!)! }
         let starts = events.filter { $0["event_type"] == "segment_start" }.map { Int($0["mono_ms"]!)! }
-        XCTAssertEqual(zip(flashOn, starts).map { $1 - $0 }, [2_000, 2_000, 2_000], "点滅の後から数える")
+        XCTAssertEqual(startPressed, starts, "「開始」を押した時刻から数える")
         XCTAssertEqual(events.filter { $0["event_type"] == "shake_prompt_on" }.count, 2)
 
         XCTAssertEqual(SessionIntegrity.check(folder: store.folderURL(for: "P01"), includeHeadphone: false), [])
@@ -207,15 +226,23 @@ final class SessionControllerTests: XCTestCase {
 
         // 参加者向けの画面が順に出ている (events.csv の screen_show)
         let shown = events.filter { $0["event_type"] == "screen_show" }.map { $0["detail"]! }.filter { $0 != "problem" }
-        XCTAssertEqual(shown, ["handover", "explain_1", "explain_2", "explain_1", "explain_2", "explain_3", "shake_start",
-                               "intro_focus", "flash_white", "flash_black", "end_focus",
-                               "intro_game_only", "flash_white", "flash_black", "game_only", "end_game_only",
-                               "intro_free", "flash_white", "flash_black", "end_free",
+        XCTAssertEqual(shown, ["handover", "explain_1", "explain_2", "explain_1", "explain_2", "explain_3", "explain_4",
+                               "shake_start", "intro_focus", "end_focus",
+                               "intro_game_only", "game_only", "end_game_only",
+                               "intro_free", "end_free",
                                "shake_end", "questions", "debrief", "call_experimenter", "end_input", "done"])
         XCTAssertEqual(store.incompleteSessions().count, 0)
     }
 
     // MARK: - 入力の扱い
+
+    /// 点滅がある設定 (点滅の仕組みを確かめるテスト用。本番は 2026-11-08 から点滅しない、app_decisions #78)
+    private func flashDevConfig() -> ExperimentConfig {
+        var config = ExperimentConfig.dev()
+        config.flashWhiteMs = 1_000
+        config.flashBlackMs = 1_000
+        return config
+    }
 
     private func goToFirstProblem(_ c: SessionController) {
         goToFirstIntro(c)
@@ -223,7 +250,7 @@ final class SessionControllerTests: XCTestCase {
     }
 
     func testTapsDuringFlashAreIgnoredAndLogged() throws {
-        let c = try newController(.dev())
+        let c = try newController(flashDevConfig())
         goToFirstProblem(c)
         c.keypadTap(digit: 3, at: clock.now())
         run(c, ms: 1_000)
@@ -237,7 +264,7 @@ final class SessionControllerTests: XCTestCase {
     }
 
     func testTapTimestampedBeforeProblemShownIsIgnored() throws {
-        let c = try newController(.dev())
+        let c = try newController(flashDevConfig())
         goToFirstProblem(c)
         run(c, ms: 2_000)
         let early = clock.now()
@@ -266,7 +293,7 @@ final class SessionControllerTests: XCTestCase {
     }
 
     func testStateIsSavedEverySecondWhileRunning() throws {
-        let c = try newController(.dev())
+        let c = try newController(flashDevConfig())
         goToFirstProblem(c)
         run(c, ms: 2_000 + 5_500)
         let state = try XCTUnwrap(store.listSessions().first?.state)
@@ -360,11 +387,11 @@ final class SessionControllerTests: XCTestCase {
     }
 
     func testResumeDuringFlashRestartsSamePart() throws {
-        var c: SessionController? = try newController(.dev())
+        var c: SessionController? = try newController(flashDevConfig())
         goToFirstProblem(c!)
         run(c!, ms: 500)
         c = nil
-        let r = SessionController(resuming: try store.openSession("P01"), config: .dev(), clock: clock)
+        let r = SessionController(resuming: try store.openSession("P01"), config: flashDevConfig(), clock: clock)
         r.experimenterAdvance()
         XCTAssertEqual(r.screen, .segmentIntro(.focus))
         XCTAssertEqual(try records("segments.csv").count, 0, "始まっていない部分は記録しない")

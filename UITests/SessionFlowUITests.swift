@@ -36,17 +36,18 @@ final class SessionFlowUITests: XCTestCase {
     }
 
     /// 参加者のボタン。画面が出てから少し遅れて出る (説明のページは5秒) ので、出るまで待って押す。
-    private func tapButton(_ title: String, timeout: TimeInterval = 10) {
+    /// 説明の画面と区間の前後の画面の「次へ」「開始」は、音声が流れ終わってから出る (最長でも1分弱、app_decisions #75)
+    private func tapButton(_ title: String, timeout: TimeInterval = 60) {
         let b = app.buttons[title]
         XCTAssertTrue(b.waitForExistence(timeout: timeout), "ボタンが出ない: \(title)")
         b.tap()
     }
 
-    /// 引き継ぎから、説明の3ページと開始時の頭振りを通って、計算のみの開始画面まで進める。
+    /// 引き継ぎから、説明の4ページと開始時の頭振りを通って、計算のみの開始画面まで進める。
     private func goThroughExplanation() {
         waitFor("参加者に渡す前に", timeout: 5)
         longPress("説明を始める")
-        for title in ["はじめに", "実験の流れ", "計算問題のやり方"] {
+        for title in ["はじめに", "使用する機器・取得するデータ", "実験の流れ", "計算問題のやり方"] {
             waitFor(title, timeout: 5)
             tapButton("次へ")
         }
@@ -99,15 +100,18 @@ final class SessionFlowUITests: XCTestCase {
         XCTAssertFalse(app.buttons["次へ"].exists, "説明の「次へ」はすぐには出ない")
         shot("05_explain_1")
         tapButton("次へ")
-        waitFor("実験の流れ", timeout: 5)
+        waitFor("使用する機器・取得するデータ", timeout: 5)
         tapButton("戻る")
         waitFor("はじめに", timeout: 5)
         tapButton("次へ")
-        waitFor("実験の流れ", timeout: 5)
+        waitFor("使用する機器・取得するデータ", timeout: 5)
         shot("05_explain_2")
         tapButton("次へ")
-        waitFor("計算問題のやり方", timeout: 5)
+        waitFor("実験の流れ", timeout: 5)
         shot("05_explain_3")
+        tapButton("次へ")
+        waitFor("計算問題のやり方", timeout: 5)
+        shot("05_explain_4")
         tapButton("次へ")
         waitFor("大きく頭を振ってください", timeout: 5)
         shot("06_shake_start")
@@ -150,7 +154,7 @@ final class SessionFlowUITests: XCTestCase {
         // 2問 (参加者が答える)。両方選ぶまで「次へ」は押せない
         waitFor("最後に、2つの質問に答えてください", timeout: 5)
         let next = app.buttons["次へ"]
-        XCTAssertTrue(next.waitForExistence(timeout: 5))
+        XCTAssertTrue(next.waitForExistence(timeout: 60))
         XCTAssertFalse(next.isEnabled, "両方に答えるまで進めない")
         app.buttons["少し感じた"].tap()
         XCTAssertFalse(next.isEnabled)

@@ -13,3 +13,8 @@ xcuserdata/
 
 # 実験の設計書 (参加者に目的が知られないよう公開しない)
 docs/
+
+# 1台版の音声ガイドの音声 (ElevenLabs で作ったもの。公開しない、single_decisions S53)
+SingleApp/SpeechAudio/
+# 2台版の課題アプリの音声ガイドの音声 (公開しない、app_decisions #75)
+App/SpeechAudio/

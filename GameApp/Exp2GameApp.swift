@@ -1,3 +1,4 @@
+import AVFoundation
 import GameCore
 import SwiftUI
 
@@ -27,6 +28,12 @@ struct GameRootView: View {
         .preferredColorScheme(.light)
         // 時計を見せない (設計書5章)。iPhone はステータスバーに時刻が出るので、すべての画面で隠す
         .statusBarHidden(true)
-        .task { model.onLaunch() }
+        .task {
+            // 効果音を、消音スイッチがオンでも鳴らし、ほかのアプリの音とも混ぜる (課題アプリの Chime と同じ設定、app_decisions #76)
+            let session = AVAudioSession.sharedInstance()
+            try? session.setCategory(.playback, options: [.mixWithOthers])
+            try? session.setActive(true)
+            model.onLaunch()
+        }
     }
 }

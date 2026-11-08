@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 # 区間の順番 (2026-11-04 に練習をなくし、計算のみ → ゲームのみ → 自由区間にした。schema_version 3)
 SEGMENT_ORDER = ["focus", "game_only", "free"]
@@ -104,6 +104,9 @@ EVENT_TYPES = [
     "memory_warning",
     "partial_line_recovered",
     "meta_updated",
+    # schema_version 5 から (app_decisions #75)
+    "speech_start",
+    "speech_end",
 ]
 
 END_REASONS = ["timeout", "interrupted"]

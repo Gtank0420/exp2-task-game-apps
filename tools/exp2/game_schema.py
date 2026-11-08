@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from .schema import Column
 
-GAME_SCHEMA_VERSION = 1
+GAME_SCHEMA_VERSION = 2
 
 DATA_FOLDER = "exp2_game"
 META_FILE = "game_meta.json"
@@ -43,6 +43,8 @@ GAME_EVENT_TYPES = (
     "memory_warning",
     "partial_line_recovered",
     "meta_updated",
+    "guide_show",
+    "guide_hide",
 )
 
 # アプリの RoundEndReason と同じ順

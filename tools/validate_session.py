@@ -1,9 +1,10 @@
-"""課題アプリ (iPad) とゲームアプリ (iPhone) の書き出しデータを検証する。
+"""課題アプリ (iPad) とゲームアプリ (iPhone)、1台版 (iPad 1台) の書き出しデータを検証する。
 
-    python3 tools/validate_session.py <被験者フォルダ、exp2_data、exp2_game、またはその親> [--imu <IMU の .db>] [--quiet]
+    python3 tools/validate_session.py <被験者フォルダ、exp2_data、exp2_game、exp2_single、またはその親> [--imu <IMU の .db>] [--quiet]
 
-被験者フォルダの種類 (meta.json なら課題アプリ、game_meta.json ならゲームアプリ) を見分けて検証する。
-親フォルダを指定すると、その下の exp2_data と exp2_game の両方を検証する。
+被験者フォルダの種類 (meta.json の app_kind が single なら1台版、それ以外の meta.json なら課題アプリ、
+game_meta.json ならゲームアプリ) を見分けて検証する。
+親フォルダを指定すると、その下の exp2_data、exp2_game、exp2_single をすべて検証する。
 AirPods の頭の動き (2026-11-04 から課題アプリが被験者フォルダに記録する。app_decisions #72) は自動で検証する。
 --imu は、予備の経路として既存の IMU アプリで記録したときだけ使う。課題アプリの1人分のフォルダを指定したときだけ使える
 (その人の IMU 記録と時間が重なるかを見る)。
@@ -19,14 +20,19 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from exp2.game_load import game_session_folders  # noqa: E402
 from exp2.game_validate import validate_game_session  # noqa: E402
 from exp2.load import session_folders  # noqa: E402
+from exp2.single_load import single_session_folders  # noqa: E402
+from exp2.single_validate import validate_single_session  # noqa: E402
 from exp2.validate import format_report, validate_session  # noqa: E402
 
 
 def find_folders(path: Path) -> list[tuple[str, Path]]:
-    """(種類, 被験者フォルダ) の一覧。種類は "task" か "game"。"""
+    """(種類, 被験者フォルダ) の一覧。種類は "task"、"game"、"single"。
+    1台版の被験者フォルダも meta.json を持つので、課題アプリの一覧から1台版を除く。"""
     if not path.is_dir():
         return []
-    return [("task", f) for f in session_folders(path)] + [("game", f) for f in game_session_folders(path)]
+    single = single_session_folders(path)
+    task = [f for f in session_folders(path) if f not in set(single)]
+    return [("task", f) for f in task] + [("game", f) for f in game_session_folders(path)] + [("single", f) for f in single]
 
 
 def main() -> int:
@@ -48,12 +54,14 @@ def main() -> int:
     for kind, folder in folders:
         if kind == "task":
             issues = validate_session(folder, imu_db=args.imu)
-        else:
+        elif kind == "game":
             issues = validate_game_session(folder)
+        else:
+            issues = validate_single_session(folder)
         if args.quiet:
             issues = [i for i in issues if i.level != "INFO"]
         n_ng += any(i.level == "ERROR" for i in issues)
-        label = "課題" if kind == "task" else "ゲーム"
+        label = {"task": "課題", "game": "ゲーム", "single": "1台版"}[kind]
         print(f"[{label}] " + format_report(folder, issues))
     print(f"\n{len(folders)} 件中 {len(folders) - n_ng} 件 OK、{n_ng} 件 NG")
     return 1 if n_ng else 0

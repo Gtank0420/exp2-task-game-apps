@@ -7,6 +7,11 @@
 // - openExperimenter / closeExperimenter / stopRecording: 実験者の操作
 // - motion(_:): iPhone の動きのサンプル
 //
+// 操作のガイド (2026-11-08、app_decisions #77。1台版の single_decisions S47〜S49 と同じ規則):
+// - 選択画面からゲームを選んだときに guideShown にし、最初のゲームの操作で消す。「もう1回」と「新しく始める」のあとは出さない
+// - 積み上げ型は、ガイドが出ている間ブロックが前の段の真上で止まって待つ。最初のタップで動き出す (落とさない。
+//   タッチの result は stack_start。回の n_actions には数えない)
+//
 // タッチとゲームの操作の結び付け:
 // タッチの行 (game_touches.csv) の result には、そのタッチで起きたゲームの操作 (drop_placed、move_left、
 // button=retry など) を書く。操作は、その時刻より前に触れたタッチのうち最も新しいもの (触れている最中か、
@@ -66,6 +71,9 @@ public final class GameController {
     /// 遊んでいる最中のゲーム
     public private(set) var stack: StackGame?
     public private(set) var merge: MergeGame?
+    /// 操作のガイド (手の動き) を出している。最初のゲームの操作で消える (app_decisions #77)。
+    /// 積み上げ型は、出ている間ブロックが止まって待つ
+    public private(set) var guideShown = false
     public private(set) var current: CurrentPart?
     /// 書き込みに失敗したときの内容。画面側で実験者に知らせる
     public private(set) var lastError: String?
@@ -153,7 +161,7 @@ public final class GameController {
             guard screen == .menu, !experimenterOpen else { return }
             addResult("button=select_\(game.rawValue)", at: now)
             try log(.button, at: now, detail: "select_game game=\(game.rawValue)")
-            try startPart(game, at: now)
+            try startPart(game, at: now, showsGuide: true)
         }
     }
 
@@ -161,6 +169,15 @@ public final class GameController {
     public func stackDrop(at: Timestamp) {
         perform {
             guard screen == .playing(.stack), var game = stack, var part = current else { return }
+            if guideShown {
+                // 最初のタップは落とさず、止まっていたブロックを動き出させる (app_decisions #77)。
+                // 回の n_actions は落とした回数なので数えない
+                stack = StackGame.startingAboveTop(config: config.stack, seed: part.roundSeed, atMonoMs: at.monoMs)
+                addResult("stack_start", at: at)
+                try hideGuide(firstAction: "start", at: at)
+                try saveState(at)
+                return
+            }
             let result = game.drop(atMonoMs: at.monoMs)
             stack = game
             part.nActions += 1
@@ -178,6 +195,7 @@ public final class GameController {
     public func mergeSwipe(_ direction: SwipeDirection, at: Timestamp) {
         perform {
             guard screen == .playing(.merge), var game = merge, var part = current else { return }
+            if guideShown { try hideGuide(firstAction: "swipe", at: at) }
             let (moved, _) = game.move(direction)
             merge = game
             savedMerge?.game = game
@@ -212,6 +230,7 @@ public final class GameController {
             guard screen == .playing(.merge), !experimenterOpen else { return }
             addResult("button=new_game", at: now)
             try log(.button, at: now, detail: "new_game")
+            if guideShown { try hideGuide(firstAction: "new_game", at: now) }
             try endPart(reason: .newGame, at: now)
             try startPart(.merge, at: now)
         }
@@ -282,6 +301,12 @@ public final class GameController {
         }
     }
 
+    /// 積み上げ型の動くブロックの左端の位置 (画面の描画に使う)。ガイドが出ている間は、前の段の真上で止まっている
+    public func stackMovingX(atMonoMs t: Int64) -> Double? {
+        guard let g = stack else { return nil }
+        return guideShown ? g.top.x : g.movingX(atMonoMs: t)
+    }
+
     /// iPhone の動きのサンプル。記録を終えたあとは捨てる。
     public func motion(_ samples: [MotionSample]) {
         guard !completed, !samples.isEmpty else { return }
@@ -304,7 +329,8 @@ public final class GameController {
 
     // MARK: - 回と部分
 
-    private func startPart(_ game: GameKind, at now: Timestamp) throws {
+    /// showsGuide: 操作のガイドを出す (積み上げ型はブロックを止めて待つ)。選択画面から選んだときだけ
+    private func startPart(_ game: GameKind, at now: Timestamp, showsGuide: Bool = false) throws {
         switch game {
         case .stack:
             let round = nextRoundIndex
@@ -335,6 +361,10 @@ public final class GameController {
         }
         let c = current!
         try log(.roundStart, at: now, detail: "round_seed=\(c.roundSeed) score_start=\(c.scoreStart)")
+        guideShown = showsGuide
+        if showsGuide {
+            try log(.guideShow, at: now, detail: "game=\(game.rawValue)")
+        }
         try show(.playing(game), at: now)
         try saveState(now)
     }
@@ -369,6 +399,14 @@ public final class GameController {
         current = nil
         stack = nil
         merge = nil
+        // ガイドを出したまま抜けた (選択画面へ、記録終了)。消えた時刻はほかのイベントでわかるので書かない
+        guideShown = false
+    }
+
+    /// 最初のゲームの操作でガイドを消す
+    private func hideGuide(firstAction: String, at t: Timestamp) throws {
+        guideShown = false
+        try log(.guideHide, at: t, detail: "first_action=\(firstAction)")
     }
 
     // MARK: - 再開

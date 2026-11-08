@@ -1,6 +1,7 @@
 """USB でつないだ iPad / iPhone を xcrun devicectl で扱う (tools/pull_from_ipad.py と tools/install_to_ipad.py で使う)。
 
-課題アプリ (iPad) とゲームアプリ (研究室の iPhone) の両方を扱う。どちらかは --app task / game で選ぶ。
+課題アプリ (iPad) とゲームアプリ (研究室の iPhone) と1台版 (iPad) を扱う。どれかは --app task / game / single で選ぶ。
+一度 USB でつないで信頼した端末は、Mac と同じ Wi-Fi にいればケーブルなしでも扱える (devicectl がネットワーク越しにつなぐ)。
 """
 
 from __future__ import annotations
@@ -28,6 +29,8 @@ class AppTarget:
 APPS = {
     "task": AppTarget("com.ryogashimizu.Exp2Task", "Exp2Task", "Exp2Task.app", "exp2_data", "meta.json", "iPad"),
     "game": AppTarget("com.ryogashimizu.Exp2Game", "Exp2Game", "Exp2Game.app", "exp2_game", "game_meta.json", "iPhone"),
+    # 1台版 (docs/single_decisions.md S1、S2)。課題アプリと同じ iPad に入るが、bundle ID が違うのでデータの場所も別
+    "single": AppTarget("com.ryogashimizu.Exp2Single", "Exp2Single", "Exp2Single.app", "exp2_single", "meta.json", "iPad"),
 }
 
 BUNDLE_ID = APPS["task"].bundle_id

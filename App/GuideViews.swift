@@ -236,14 +236,19 @@ private struct GuideBottomBar: View {
 // MARK: - 図
 
 /// 「はじめに」: 使う3つの道具 (AirPods、iPad、スマホ)。
+/// 1台版 (図の名前 "devices_ipad") はスマホを使わないので、AirPods と iPad だけを描く (showsPhone = false)
 private struct DevicesIllustration: View {
+    var showsPhone = true
+
     var body: some View {
         GuideCard(padding: 26) {
             VStack(spacing: 22) {
                 device("airpodspro", "AirPods", GuideTheme.shake)
                 HStack(spacing: 34) {
                     device("ipad.landscape", "iPad", GuideTheme.calc)
-                    device("iphone", "スマホ", GuideTheme.game)
+                    if showsPhone {
+                        device("iphone", "スマホ", GuideTheme.game)
+                    }
                 }
             }
             .frame(width: 330)
@@ -412,6 +417,11 @@ struct HandoverView: View {
     let guide: ParticipantGuide
     let longPressMs: Int
     let headphone: HeadphoneMotionRecorder
+    /// 音の出先と音量を確かめる行を出すか。2台版は区間の終わりの音、1台版は説明の読み上げのため
+    var showsAudio = true
+    /// 音の出先と音量の行の、何の音かの説明 (既定は2台版の区間の終わりの音)
+    var audioRouteNote = "説明の音声と区間の終わりの音は AirPods から鳴る"
+    var audioVolumeNote = "説明の音声と区間の終わりの音を流す。40% 以上にする"
     let onHandover: () -> Void
     @State private var guidedAccessOn = UIAccessibility.isGuidedAccessEnabled
     @State private var audio = AudioStatus.current()
@@ -425,11 +435,13 @@ struct HandoverView: View {
                 status(ok: guidedAccessOn,
                        guidedAccessOn ? "アクセスガイド: オン" : "アクセスガイド: オフ (サイドボタンの3回押しでオン)")
                 HeadphoneStatusLine(recorder: headphone)
-                // AirPods を iPad につなぐので、区間の終わりの音は AirPods から鳴る (app_decisions #73)
-                status(ok: audio.isBluetooth,
-                       audio.isBluetooth ? "音の出先: \(audio.outputName) (区間の終わりの音は AirPods から鳴る)"
-                           : "音の出先: \(audio.outputName) (AirPods が iPad につながっていない。設定 → Bluetooth で確かめる)")
-                status(ok: audio.volume >= 0.4, "音量: \(Int((audio.volume * 100).rounded()))% (区間の終わりに音が鳴る。40% 以上にする)")
+                if showsAudio {
+                    // AirPods を iPad につなぐので、区間の終わりの音は AirPods から鳴る (app_decisions #73)
+                    status(ok: audio.isBluetooth,
+                           audio.isBluetooth ? "音の出先: \(audio.outputName) (\(audioRouteNote))"
+                               : "音の出先: \(audio.outputName) (AirPods が iPad につながっていない。設定 → Bluetooth で確かめる)")
+                    status(ok: audio.volume >= 0.4, "音量: \(Int((audio.volume * 100).rounded()))% (\(audioVolumeNote))")
+                }
             }
             .font(.headline)
             Spacer()
@@ -549,6 +561,11 @@ struct ExplanationView: View {
                 DevicesIllustration()
                 GuidePointList(points: points)
             }
+        case "devices_ipad":
+            HStack(alignment: .top, spacing: 32) {
+                DevicesIllustration(showsPhone: false)
+                GuidePointList(points: points)
+            }
         case "calc_examples":
             HStack(alignment: .top, spacing: 28) {
                 ForEach(content.examples ?? [], id: \.caption) { CalcExampleCard(example: $0) }
@@ -639,6 +656,8 @@ struct SegmentIntroView: View {
 struct GameOnlyIntroView: View {
     let guide: ParticipantGuide
     let startTitle: String
+    /// 画面写真に iPhone の枠を付けるか。1台版は iPad の画面の一部なので、スマホと誤解しないよう枠を付けない
+    var phoneFrame = true
     let onStart: () -> Void
 
     var body: some View {
@@ -681,7 +700,9 @@ struct GameOnlyIntroView: View {
                     GuideCard(padding: 22) {
                         VStack(alignment: .leading, spacing: 16) {
                             HStack(spacing: 12) {
-                                IconBadge(icon: "speaker.wave.2.fill", size: 44)
+                                // 区間の終わりに音を鳴らさない1台版 (設計書11章 #8) では、スピーカーの印を出さない
+                                IconBadge(icon: guide.segmentEndChime ? "speaker.wave.2.fill" : "rectangle.portrait.and.arrow.right",
+                                          size: 44)
                                 Text(guide.gameOnlyEndRule)
                                     .font(GuideTheme.font(21, bold: true))
                                     .foregroundStyle(GuideTheme.ink)
@@ -710,13 +731,22 @@ struct GameOnlyIntroView: View {
     @ViewBuilder
     private func guideImage(_ name: String) -> some View {
         if let image = UIImage(named: name) {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFit()
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                .padding(6)
-                .background(RoundedRectangle(cornerRadius: 22).fill(GuideTheme.ink))
-                .frame(height: 280)
+            if phoneFrame {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .padding(6)
+                    .background(RoundedRectangle(cornerRadius: 22).fill(GuideTheme.ink))
+                    .frame(height: 280)
+            } else {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(GuideTheme.subInk.opacity(0.35), lineWidth: 1.5))
+                    .frame(height: 280)
+            }
         }
     }
 }

@@ -76,6 +76,15 @@ final class GameControllerTests: XCTestCase {
         XCTAssertEqual(c.screen, .menu)
         tap(c) { c.selectGame(.stack) }
         XCTAssertEqual(c.screen, .playing(.stack))
+        // 選んだ直後は操作のガイドが出ていて、ブロックは前の段の真上で止まっている。最初のタップで動き出す (落とさない。app_decisions #77)
+        XCTAssertTrue(c.guideShown)
+        let top = try XCTUnwrap(c.stack?.top.x)
+        clock.advance(1_500)
+        XCTAssertEqual(c.stackMovingX(atMonoMs: clock.now().monoMs), top)
+        tap(c) { c.stackDrop(at: clock.now()) }
+        XCTAssertFalse(c.guideShown)
+        XCTAssertEqual(c.stack?.score, 0)
+        XCTAssertEqual(c.current?.nActions, 0, "動き出しのタップは回の操作の数に入れない")
         for _ in 0..<2 {
             advanceStack(c) { x, top, _ in abs(x - top.x) < 0.005 }
             tap(c) { c.stackDrop(at: clock.now()) }
@@ -88,6 +97,7 @@ final class GameControllerTests: XCTestCase {
 
         tap(c) { c.retry() }
         XCTAssertEqual(c.screen, .playing(.stack))
+        XCTAssertFalse(c.guideShown, "「もう1回」のあとはガイドを出さず、すぐ動く")
         XCTAssertEqual(c.current?.roundIndex, 1)
         XCTAssertEqual(c.current?.bestBefore, 2)
 
@@ -102,13 +112,13 @@ final class GameControllerTests: XCTestCase {
 
         let touches = try records(GameFileName.touches)
         XCTAssertEqual(touches.map { $0["result"] },
-                       ["button=select_stack", "drop_perfect", "drop_perfect", "drop_miss", "button=retry"])
-        XCTAssertEqual(touches.map { $0["touch_index"] }, ["0", "1", "2", "3", "4"])
+                       ["button=select_stack", "stack_start", "drop_perfect", "drop_perfect", "drop_miss", "button=retry"])
+        XCTAssertEqual(touches.map { $0["touch_index"] }, ["0", "1", "2", "3", "4", "5"])
         XCTAssertEqual(touches[0]["screen"], "menu")
         XCTAssertEqual(touches[1]["screen"], "play_stack")
         XCTAssertEqual(touches[1]["round_index"], "0")
         XCTAssertEqual(touches[1]["touch_type"], "tap")
-        XCTAssertEqual(touches[4]["screen"], "result_stack")
+        XCTAssertEqual(touches[5]["screen"], "result_stack")
     }
 
     func testMergeBoardContinuesAcrossParts() throws {

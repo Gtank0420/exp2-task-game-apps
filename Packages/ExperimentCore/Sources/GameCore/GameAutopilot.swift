@@ -162,6 +162,15 @@ public final class GameAutopilot {
     /// 積み上げ型: 動くブロックが、ねらった位置を通り過ぎた瞬間に落とす
     private func stepStack(now: Timestamp) {
         guard let game = controller.stack else { return }
+        if controller.guideShown {
+            // ガイドが出ている間は止まって待っている。タップして動き出させ、少し見てから落とし始める (app_decisions #77)。
+            // 見ている時間は乱数を使わずに決める (ほかの振る舞いの乱数の列を、ガイドがなかったときと同じにするため)
+            tap(x: 195, y: 500) { [controller, clock] in controller.stackDrop(at: clock.now()) }
+            busyUntilMono = now.monoMs + Int64(config.reactionMsRange.lowerBound)
+            stackTarget = nil
+            lastStackX = nil
+            return
+        }
         if stackTarget?.level != game.score {
             stackTarget = (game.score, config.stackAimSigma * rng.nextNormal())
             lastStackX = nil

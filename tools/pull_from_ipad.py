@@ -1,6 +1,6 @@
-"""USB でつないだ iPad (課題アプリ) か iPhone (ゲームアプリ) から、データを Mac に丸ごと写して検証する。
+"""USB か同じ Wi-Fi でつないだ iPad (課題アプリ、1台版) か iPhone (ゲームアプリ) から、データを Mac に丸ごと写して検証する。
 
-    python3 tools/pull_from_ipad.py <保存先フォルダ> [--app task|game] [--device <名前 または UDID>]
+    python3 tools/pull_from_ipad.py <保存先フォルダ> [--app task|game|single] [--device <名前 または UDID>]
 
 AirDrop で送れないとき (電池切れ寸前、アプリの不具合など) の予備の取り出し方。
 アプリの Documents フォルダ全体を <保存先>/<日時>/ に写す。毎回新しいフォルダを作るので、
@@ -20,13 +20,15 @@ from exp2.game_load import game_session_folders  # noqa: E402
 from exp2.game_validate import validate_game_session  # noqa: E402
 from exp2.ipad import APPS, find_device, is_installed, pull_documents  # noqa: E402
 from exp2.load import session_folders  # noqa: E402
+from exp2.single_load import single_session_folders  # noqa: E402
+from exp2.single_validate import validate_single_session  # noqa: E402
 from exp2.validate import format_report, validate_session  # noqa: E402
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("dest", type=Path, help="保存先 (この下に日時のフォルダを作る)")
-    parser.add_argument("--app", choices=sorted(APPS), default="task", help="task: 課題アプリ (iPad)、game: ゲームアプリ (iPhone)")
+    parser.add_argument("--app", choices=sorted(APPS), default="task", help="task: 課題アプリ (iPad)、game: ゲームアプリ (iPhone)、single: 1台版 (iPad)")
     parser.add_argument("--device", help="端末の名前か UDID (その種類の実機が1台なら省略可)")
     args = parser.parse_args()
     target = APPS[args.app]
@@ -43,6 +45,8 @@ def main() -> int:
         return 0
     if args.app == "task":
         folders, validate = session_folders(data), validate_session
+    elif args.app == "single":
+        folders, validate = single_session_folders(data), validate_single_session
     else:
         folders, validate = game_session_folders(data), validate_game_session
     n_ng = 0

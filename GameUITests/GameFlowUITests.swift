@@ -16,6 +16,22 @@ final class GameFlowUITests: XCTestCase {
         app = XCUIApplication()
     }
 
+    /// 要素の中央から (dx, dy) だけドラッグする (2048 型のスワイプ)
+    private func drag(_ element: XCUIElement, dx: CGFloat, dy: CGFloat) {
+        let start = element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: dx, dy: dy)))
+    }
+
+    /// 要素が消えるまで待つ (消えたら true)
+    private func waitGone(_ element: XCUIElement, timeout: TimeInterval = 2) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if !element.exists { return true }
+            Thread.sleep(forTimeInterval: 0.1)
+        }
+        return false
+    }
+
     private func shot(_ name: String) {
         guard let dir = ProcessInfo.processInfo.environment["SCREENSHOT_DIR"] else { return }
         let data = XCUIScreen.main.screenshot().pngRepresentation
@@ -52,8 +68,13 @@ final class GameFlowUITests: XCTestCase {
         // 積み上げ型: 何回かタップして落とす
         element("menu_stack").tap()
         let area = element("stack_area")
+        // 選んだ直後は操作のガイド (手の動き) が出ていて、最初のタップで消える (app_decisions #77)
+        let guide = app.descendants(matching: .any)["game_guide"]
+        XCTAssertTrue(guide.waitForExistence(timeout: 2), "選んだときに操作のガイドを出す")
         Thread.sleep(forTimeInterval: 0.8)
         shot("03_stack_start")
+        area.tap()
+        XCTAssertTrue(waitGone(guide), "最初のタップでガイドが消える")
         for _ in 0..<5 {
             if app.buttons["retry"].exists { break }
             area.tap()
@@ -70,17 +91,24 @@ final class GameFlowUITests: XCTestCase {
         // 2048 型: 何回かスワイプする
         element("menu_merge").tap()
         let board = element("merge_board")
-        board.swipeLeft()
-        board.swipeDown()
-        board.swipeRight()
-        board.swipeUp()
+        XCTAssertTrue(guide.waitForExistence(timeout: 2), "2048 型を選んだときもガイドを出す")
+        Thread.sleep(forTimeInterval: 0.6)
+        shot("05_merge_guide")
+        // XCUITest の swipeLeft() は短い動き (タップ扱い) として届くことがあるので、位置でドラッグする
+        drag(board, dx: -100, dy: 0)
+        XCTAssertTrue(waitGone(guide), "最初のスワイプでガイドが消える")
+        drag(board, dx: 0, dy: 100)
+        drag(board, dx: 100, dy: 0)
+        drag(board, dx: 0, dy: -100)
         shot("05_merge")
         element("back").tap()
         element("menu_stack")
         shot("06_menu_after")
 
         // 実験者画面を開いて記録を終える
-        element("experimenter_corner").press(forDuration: 3.5)
+        // 画面のいちばん上の左の角 (上の切り欠きの横) を長押しして開けること。実機で、要素の位置 (安全な領域の中) ではなく
+        // 画面の角を押して開かなかったため (2026-11-08、app_decisions #81)
+        app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: 20, dy: 20)).press(forDuration: 3.5)
         XCTAssertTrue(app.staticTexts["実験者画面"].waitForExistence(timeout: 5))
         shot("07_experimenter")
         let stop = app.staticTexts["記録終了（長押し）"]

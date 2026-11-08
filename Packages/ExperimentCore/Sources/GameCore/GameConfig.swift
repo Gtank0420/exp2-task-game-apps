@@ -54,6 +54,19 @@ extension StackConfig {
     }
 }
 
+/// ゲームの効果音 (1台版の single_decisions S55、2台版の app_decisions #76)。音そのもの (高さ、長さ) は画面側の
+/// GameSound が作る (色や形と同じく見た目の一部として GameStyle と同じ考え方で置く)。ここは鳴らすかどうかと大きさだけ
+public struct GameSoundConfig: Codable, Equatable, Sendable {
+    /// 効果音の大きさ (0〜1。端末の音量に掛かる)。説明の音声より控えめにする
+    public var volume: Float
+
+    public init(volume: Float) {
+        self.volume = volume
+    }
+
+    public static let standard = GameSoundConfig(volume: 0.5)
+}
+
 /// 2048 型の設定。規則は一般的なもの (4×4、新しい数は 2 か 4、得点は合体してできた数の合計)。
 public struct MergeConfig: Codable, Equatable, Sendable {
     public var size: Int = 4
@@ -118,6 +131,8 @@ public struct GameConfig: Codable, Equatable, Sendable {
     /// 開発用モードのときだけ使う。本番では nil
     public var simulatedPlayer: SimulatedPlayerConfig?
     public var isDevMode: Bool
+    /// ゲームの効果音 (2026-11-08 から、app_decisions #76)。nil なら鳴らさない。前の版の記録も読めるよう省略できる
+    public var sound: GameSoundConfig? = nil
 
     /// 回の乱数の種。JSON と Python で誤差なく扱えるよう 2^53 未満にする
     public func roundSeed(roundIndex: Int) -> UInt64 {
@@ -128,7 +143,8 @@ public struct GameConfig: Codable, Equatable, Sendable {
 
 extension GameConfig {
     public static let production = GameConfig(
-        schemaVersion: 1,
+        // 2: 操作のガイドと積み上げ型の動き出しのタップ (guide_show / guide_hide、result の stack_start、app_decisions #77)
+        schemaVersion: 2,
         baseSeed: 20_261_201,
         stack: StackConfig(),
         merge: MergeConfig(),
@@ -139,7 +155,8 @@ extension GameConfig {
         experimenterCornerPressMs: 3_000,
         experimenterLongPressMs: 1_000,
         simulatedPlayer: nil,
-        isDevMode: false
+        isDevMode: false,
+        sound: .standard
     )
 
     /// 開発用モード。疑似プレイヤーのほかは本番と同じにし、本番と同じ形式のデータが出るようにする

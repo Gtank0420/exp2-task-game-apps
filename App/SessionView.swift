@@ -14,6 +14,8 @@ struct SessionView: View {
     @State private var autopilot: Autopilot?
     /// 再開の画面に出す (再開前にアクセスガイドを入れ直し忘れないため)
     @State private var guidedAccessOn = UIAccessibility.isGuidedAccessEnabled
+    /// 音声ガイド (説明の画面と、区間の前後の画面などに流す音声、app_decisions #75)。設定になければ nil
+    @State private var speaker: SpeechGuidePlayer?
 
     private var texts: ExperimentTexts { controller.config.texts }
     private var guide: ParticipantGuide { controller.config.participantGuide }
@@ -24,6 +26,11 @@ struct SessionView: View {
             Color.white.ignoresSafeArea()
             // 画面ごとに作り直す (参加者のボタンが出るまでの待ち時間を、画面が変わるたびに数え直すため)
             content.id(controller.screen.logName)
+            // 音声ファイルがある画面だけに、もう一度聞くボタンを出す
+            if let speech = controller.config.speech, let name = speechAudioName,
+               SpeechGuidePlayer.url(name, config: speech) != nil {
+                SpeechReplayButton(label: speech.replayLabel, alignment: replayAlignment) { speak(replay: true) }
+            }
             if autopilot != nil {
                 VStack {
                     HStack {
@@ -53,7 +60,12 @@ struct SessionView: View {
             UIApplication.shared.isIdleTimerDisabled = true
             UIDevice.current.isBatteryMonitoringEnabled = true
         }
-        .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
+        .onDisappear {
+            UIApplication.shared.isIdleTimerDisabled = false
+            speaker?.stop()
+        }
+        // 画面が変わったら、音声を流す画面なら流し、そうでなければ止める
+        .onChange(of: controller.screen.logName, initial: true) { _, _ in speak(replay: false) }
         .onChange(of: scenePhase) { _, phase in
             switch phase {
             case .active: controller.logExternal(.sceneActive)
@@ -80,6 +92,62 @@ struct SessionView: View {
             if level >= 0, level <= 0.2 {
                 controller.logExternal(.lowBattery, detail: "level=\(Int(level * 100))")
             }
+        }
+    }
+
+    /// 自由区間の開始画面の教示の文字の大きさ。教示は1文ずつ改行してあり、いちばん長い行が1行に収まる大きさ
+    /// (説明の枠の幅 900 pt。2026-11-08 に 32 から変えた、app_decisions #79)
+    static let freeInstructionSize: CGFloat = 28
+
+    /// いまの画面で流す音声ファイルの名前 (流さない画面なら nil)
+    private var speechAudioName: String? {
+        TaskSpeech.audioName(for: controller.screen, config: controller.config)
+    }
+
+    /// もう一度聞くボタンの置き場所。計算と自由区間の開始画面は、中央の下に「開始」と補足の文があるので右下に置く。
+    /// ほかの画面は下の中央 (1台版と同じ)
+    private var replayAlignment: Alignment {
+        switch controller.screen {
+        case .segmentIntro(.focus), .segmentIntro(.free): return .bottomTrailing
+        default: return .bottom
+        }
+    }
+
+    /// いまの画面の説明の設定。音声が流れ終わってから「次へ」と「開始」を出すよう、その画面の待ち時間だけを延ばす
+    /// (app_decisions #75。1台版の single_decisions S54 と同じ)。説明の画面の「戻る」はいつもの待ち時間のまま
+    private var screenGuide: ParticipantGuide {
+        var g = guide
+        guard let name = speechAudioName, let speech = controller.config.speech else { return g }
+        let duration = SpeechGuidePlayer.durationMs(name, config: speech)
+        let start = TaskSpeech.startDelayMs(for: controller.screen, config: controller.config)
+        switch controller.screen {
+        case .segmentIntro, .segmentEnd, .questions:
+            // 区間の開始画面の「開始」、終了画面の「次へ」、質問の「次へ」は participantButtonDelayMs で出る
+            g.participantButtonDelayMs = speech.nextDelayMs(audioDurationMs: duration, usualMs: g.participantButtonDelayMs,
+                                                            startDelayMs: start)
+        default:
+            // 説明の画面、頭振り、目的の説明の「次へ」は explanationNextDelayMs で出る。
+            // 「実験者を呼んでください」には参加者のボタンがない
+            g.explanationNextDelayMs = speech.nextDelayMs(audioDurationMs: duration, usualMs: g.explanationNextDelayMs,
+                                                          startDelayMs: start)
+        }
+        return g
+    }
+
+    private func speak(replay: Bool) {
+        guard let config = controller.config.speech else { return }
+        if speaker == nil {
+            let controller = self.controller
+            speaker = SpeechGuidePlayer(config: config) { start, detail in
+                controller.logExternal(start ? .speechStart : .speechEnd, detail: detail)
+            }
+        }
+        if let name = speechAudioName {
+            // 区間の終了画面は、区間の終わりの音のあとに流す。もう一度聞くボタンではすぐ流す
+            let start = replay ? config.startDelayMs : TaskSpeech.startDelayMs(for: controller.screen, config: controller.config)
+            speaker?.play(name, screen: controller.screen.logName, replay: replay, startDelayMs: start)
+        } else {
+            speaker?.stop()
         }
     }
 
@@ -123,11 +191,11 @@ struct SessionView: View {
                          headphone: headphone, onHandover: controller.experimenterAdvance)
 
         case .explanation(let page):
-            ExplanationView(guide: guide, page: page,
+            ExplanationView(guide: screenGuide, page: page,
                             onBack: controller.participantBack, onNext: controller.participantNext)
 
         case .shakePrompt:
-            ShakeView(prompt: texts.shakePrompt, guide: guide, onNext: controller.participantNext)
+            ShakeView(prompt: texts.shakePrompt, guide: screenGuide, onNext: controller.participantNext)
 
         case .resumePrompt:
             ZStack(alignment: .bottomTrailing) {
@@ -148,12 +216,13 @@ struct SessionView: View {
         case .segmentIntro(let segment):
             switch segment {
             case .gameOnly:
-                GameOnlyIntroView(guide: guide, startTitle: texts.startButton, onStart: controller.participantStart)
+                GameOnlyIntroView(guide: screenGuide, startTitle: texts.startButton, onStart: controller.participantStart)
             case .free:
-                SegmentIntroView(instruction: texts.freeInstruction, instructionSize: 32, showsGame: true, guide: guide,
+                SegmentIntroView(instruction: texts.freeInstruction, instructionSize: Self.freeInstructionSize,
+                                 showsGame: true, guide: screenGuide,
                                  startTitle: texts.startButton, onStart: controller.participantStart)
             case .focus:
-                SegmentIntroView(instruction: texts.focusInstruction, instructionSize: 44, guide: guide,
+                SegmentIntroView(instruction: texts.focusInstruction, instructionSize: 44, guide: screenGuide,
                                  startTitle: texts.startButton, onStart: controller.participantStart)
             }
 
@@ -171,17 +240,17 @@ struct SessionView: View {
 
         case .segmentEnd(let segment):
             SegmentEndView(title: endText(segment), action: endAction(segment),
-                           steps: segment == .gameOnly ? guide.gameOnlyEndSteps : nil, guide: guide,
+                           steps: segment == .gameOnly ? guide.gameOnlyEndSteps : nil, guide: screenGuide,
                            onNext: controller.participantNext)
 
         case .questions:
-            QuestionsView(questions: controller.config.oralQuestions, guide: guide, onSubmit: controller.submitAnswers)
+            QuestionsView(questions: controller.config.oralQuestions, guide: screenGuide, onSubmit: controller.submitAnswers)
 
         case .debrief:
-            DebriefView(guide: guide, onNext: controller.participantNext)
+            DebriefView(guide: screenGuide, onNext: controller.participantNext)
 
         case .callExperimenter:
-            CallExperimenterView(guide: guide, longPressMs: longPressMs, onAdvance: controller.experimenterAdvance)
+            CallExperimenterView(guide: screenGuide, longPressMs: longPressMs, onAdvance: controller.experimenterAdvance)
 
         case .endInput:
             EndInputView(answers: controller.oralAnswers) { memo in

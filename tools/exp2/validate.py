@@ -112,6 +112,7 @@ def validate_session(folder: str | Path, imu_db: str | Path | None = None) -> li
     _check_events(events, meta, r)
     _check_segments(segments, events, config, r)
     _check_items(items, segments, config, r)
+    _check_speech(events, segments, r)
     if config.get("headphone") is not None:
         _check_headphone(folder, meta, events, segments, r)
     if imu_db is not None:
@@ -260,8 +261,9 @@ def _check_segments(segments: pd.DataFrame, events: pd.DataFrame, config: dict, 
             if not (abs(seg_ends["mono_ms"] - p["end_mono_ms"]) <= SAME_INSTANT_TOLERANCE_MS).any():
                 r.error(check, f"{sid} part {p['part']}: 対応する segment_end イベントがありません")
 
-        # 区間の開始の直前に、白→黒の点滅がある (カメラとの同期の印)
-        for _, st in seg_starts.iterrows():
+        # 区間の開始の直前に、白→黒の点滅がある (カメラとの同期の印)。点滅の長さが 0 の設定 (1台版、
+        # single_decisions S58) は点滅しないので見ない
+        for _, st in (seg_starts.iterrows() if white_ms + black_ms > 0 else []):
             before = events[events["event_index"] < st["event_index"]]
             flash = {et: before[before["event_type"] == et]["mono_ms"].max()
                      for et in ("flash_white_on", "flash_black_on", "flash_off")}
@@ -351,6 +353,26 @@ def _check_items(items: pd.DataFrame, segments: pd.DataFrame, config: dict, r: _
             implied = lo + (pr["shown_mono_ms"] - p["start_mono_ms"])
             if (abs(pr["shown_elapsed_ms"] - implied) > SAME_INSTANT_TOLERANCE_MS).any():
                 r.error("時刻の順序 (items)", f"{label}: shown_elapsed_ms が単調時刻から計算した値と合いません")
+
+
+def _check_speech(events: pd.DataFrame, segments: pd.DataFrame, r: _Report) -> None:
+    """音声ガイド (1台版の single_decisions S52、2台版の app_decisions #75): 流し始めと終わりが組になっていて、
+    区間の最中に流し始めていない。1台版の検証もこれを使う。"""
+    check = "音声ガイド"
+    sp = events[events["event_type"].astype(str).isin(["speech_start", "speech_end"])]
+    if sp.empty:
+        return
+    kinds = list(sp["event_type"].astype(str))
+    unpaired = sum(1 for a, b in zip(kinds, kinds[1:] + [""]) if a == "speech_start" and b != "speech_end")
+    if unpaired:
+        r.warn(check, f"終わりの記録がない読み上げが {unpaired} 回あります (読んでいる最中にアプリが落ちた可能性)")
+    # 区間の部分 (点滅のあとの計算とゲームの時間) の中で読み始めていない
+    starts = sp[sp["event_type"].astype(str) == "speech_start"]["mono_ms"].to_numpy()
+    for _, p in segments.iterrows():
+        if ((starts > p["start_mono_ms"]) & (starts < p["end_mono_ms"])).any():
+            r.error(check, f"{p['segment']} 部分 {p['part']} の最中に読み上げを始めています")
+    reasons = sp["detail"].astype(str).str.extract(r"reason=(\w+)")[0].value_counts()
+    r.info(check, f"読み上げ {len(starts)} 回 (" + "、".join(f"{k} {v}" for k, v in reasons.items()) + ")")
 
 
 def _check_headphone(folder: Path, meta: dict, events: pd.DataFrame, segments: pd.DataFrame, r: _Report) -> None:

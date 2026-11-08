@@ -20,7 +20,7 @@
 - 時刻は Unix 時刻 (ミリ秒) と、単調増加の時刻の両方で記録する
 - 記録はすぐ保存する。既存の被験者データを上書きしない
 - 設定値 (区間の長さ、数字の範囲、乱数の種など) は1か所にまとめる
-- ゲームは音を出さず、文字を読む要素を入れず、既存の有名ゲームの見た目を真似ない
+- ゲームは文字を読む要素を入れず、既存の有名ゲームの見た目を真似ない。効果音は鳴らす (2026-11-07 に1台版、11-08 に2台版。合成した短い音で、既存のゲームの音を真似ない)
 - アンケートは対象外。ただし終了後の2問は、課題アプリで参加者が答える (app_decisions #63)
 - AirPods の IMU は、2026-11-04 から課題アプリが本番のセッションの中で記録する (app_decisions #72〜#74。既存の IMU アプリはやめ、当日の予備としてだけ使う)。途中で切れても参加者の画面には何も出さず、自動で戻すだけにする
 - 実験の進行は、引き継ぎのあとは参加者が課題アプリの画面だけで進める (app_decisions #61)。参加者向けの文面はすべて ExperimentConfig.swift の ParticipantGuide に置き、画面のコードに書かない
@@ -72,3 +72,39 @@ TEST_RUNNER_SCREENSHOT_DIR=<保存先> xcodebuild -project Exp2Task.xcodeproj -s
   -destination "id=$UDID_IPHONE" -derivedDataPath build/DerivedData -only-testing:Exp2GameUITests test
 ```
 (xcodebuild はテストが終わったあとも止まらないことがある。ログに `Executed 5 tests` (ゲームアプリは `Executed 2 tests`) が出ていれば終わっている)
+
+## 1台版 (iPad 1台で、計算問題の途中にゲームが割り込む形式)
+
+2台版の2つのアプリとは別の3つ目のアプリ「実験2一台」(Exp2Single、bundle ID com.ryogashimizu.Exp2Single、保存先 exp2_single)。
+設計は docs/context_exp2_ipad_only.md (書いていないことは2台版の設計書に従う)、決めたことは docs/single_decisions.md (S1〜)、
+書き出すファイルは docs/data_spec_single.md、当日の操作は docs/experimenter_manual_single.md。2台版の app_decisions.md、data_spec.md、experimenter_manual.md には書かない。
+見取り図は docs/overview.md の9章 (1台版の構成や役割を変えたらこれも直す)。
+
+- **2台版の2つのアプリの動き、画面、記録の形式を変えない。** (2026-11-08 に、ユーザーの指示で1台版の変更の一部を2台版にも入れた (app_decisions #75〜#80)。そのあとの2台版の基準は build/baseline_2dev_v2/。1台版の基準は build/baseline_single/ (2台版を直したら、1台版の疑似参加者の出力がこれとバイト単位で同じことも確かめる)) 2台版の記録の処理 (SessionController、Records、GameController、GameRecords など) は1台版のために直さない。共通の部品 (RecordingCore、App/ と GameApp/ の参照しているファイル、Shared/、tools/exp2 の2台版の関数) に手を入れたら、2台版のテストがすべて通ることと、2台版の疑似参加者の出力が2台版の基準 (2026-11-08 からは build/baseline_2dev_v2/。それより前は build/baseline_2dev/、main 3c24a35 で作成) とバイト単位で同じことを確かめる (app_decisions #27 と同じ確かめ方)。画面の部品に触れたら、2台版の UI テストも回す
+- 設定値と参加者向けの文面は Packages/ExperimentCore/Sources/SingleCore/SingleConfig.swift の1か所 (ParticipantGuide.single、ExperimentTexts.single)。2台版と同じ値 (区間、出題、2つのゲームの規則) は2台版の設定から写して作る
+- 列を変えたら SingleRecords.swift、tools/exp2/single_schema.py、docs/data_spec_single.md を揃えて直し、1台版の schemaVersion を上げる
+- コードの置き場所: 中核は Packages/ExperimentCore の SingleCore、画面は SingleApp/ (2台版の画面の部品は project.yml でファイルを参照する)、Python は tools/exp2/single_*.py
+- 被験者 ID: 本番 S01、予備実験 SPILOT01、開発用 DEV_ (2台版の P01 は受け付けない)
+- 1台版のゲームは効果音を鳴らす (2026-11-07 ユーザー判断。single_decisions S55。2台版も 2026-11-08 から鳴らす、app_decisions #76)
+- 説明の音声 (ElevenLabs で作った mp3) は、1台版は SingleApp/SpeechAudio/、2台版の課題アプリは App/SpeechAudio/ に置く (原稿は docs/speech_scripts_single.md、speech_scripts_2dev.md)。**公開しないので git に入れない** (.gitignore 済み。プロジェクトにも名前を載せず、ビルドのたびにスクリプトでアプリに写す。single_decisions S53)
+
+```sh
+(cd Packages/ExperimentCore && swift test --filter SingleCoreTests)   # 1台版の中核の単体テスト
+swift run --package-path Packages/ExperimentCore exp2-single-simulate --out <出力先> --n 20 [--short|--quick] [--interrupt-popup]
+                                                    # 1台版の疑似参加者20人分を本番の長さで作る (約15秒)。同じ ID があれば止まる
+.venv/bin/python tools/validate_session.py <exp2_single、その被験者フォルダ、またはその親>   # 1台版も自動で見分ける (meta.json の app_kind)
+.venv/bin/python tools/make_single_sim.py --out <出力先> --n 20   # 1台版と IMU の、時間の矛盾のない疑似データ (正解つき、1人約3秒)
+.venv/bin/python tools/build_single_timeline.py <exp2_single の親> --out <出力先> [--figures]
+                                                    # 1台版の記録を1本の時間軸に並べ、状態のラベルと5秒窓を書き出す (閾値は single_timeline.py の SingleLabelParams)
+xcodebuild -project Exp2Task.xcodeproj -scheme Exp2Single \
+  -destination 'generic/platform=iOS Simulator' -derivedDataPath build/DerivedData CODE_SIGNING_ALLOWED=NO build
+
+# 実機の iPad への入れ直しと取り出し (同じ Wi-Fi でもよい。2台版の課題アプリと同じ iPad に並べて入る。もう片方のデータには触れない)
+.venv/bin/python tools/install_to_ipad.py <バックアップ先> --app single [--renew]
+.venv/bin/python tools/pull_from_ipad.py <保存先> --app single
+
+# 1台版の画面の通し操作 (UI テスト、約3分)。前回のデータが残っていると結果が変わるので、先にアプリを削除する
+xcrun simctl uninstall $UDID com.ryogashimizu.Exp2Single
+TEST_RUNNER_SCREENSHOT_DIR=<保存先> xcodebuild -project Exp2Task.xcodeproj -scheme Exp2Single \
+  -destination "id=$UDID" -derivedDataPath build/DerivedData -only-testing:Exp2SingleUITests test
+```

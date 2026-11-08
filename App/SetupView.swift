@@ -81,8 +81,8 @@ struct SetupView: View {
                 checklistRow("ゲーム用 iPhone で同じ被験者 ID を入れ、記録を始めた")
                 checklistRow("iPad とゲーム用 iPhone の2台の時刻が「自動設定」")
                 checklistRow("AirPods を装着し、iPad につないだ (AirPods の動きはこのアプリが記録する)")
-                checklistRow("カメラの録画を開始した")
-                checklistRow("参加者のスマホを預かった")
+                // 2026-11-08 からカメラで撮らず (app_decisions #78)、本人のスマホを預からない (#80)
+                checklistRow("参加者のスマホは預からず、手元に置いたままにした")
                 Text("記録開始のあと、次の画面で AirPods の記録と音量 (40% 以上) を確かめ、アクセスガイドをオンにして「説明を始める」を長押しし、iPad を参加者に渡す")
                     .font(.callout).foregroundStyle(.secondary).padding(.top, 4)
                 // 記録開始の前に、AirPods がつながっているかをここでも見られるようにする (app_decisions #72)
@@ -98,6 +98,18 @@ struct SetupView: View {
                     Text(guidedAccess ? "アクセスガイド: オン" : "アクセスガイド: オフ (サイドボタンの3回押しでオン)")
                 }
                 .padding(.top, 8)
+                if let speech = model.newSessionConfig.speech {
+                    // 音声ファイルはリポジトリに入れていない (公開しない) ので、ビルドした Mac に置き忘れると入らない (app_decisions #75)
+                    let missing = TaskSpeech.requiredAudioNames(config: model.newSessionConfig)
+                        .filter { SpeechGuidePlayer.url($0, config: speech) == nil }
+                    HStack {
+                        Image(systemName: missing.isEmpty ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                            .foregroundStyle(missing.isEmpty ? .green : .orange)
+                        Text(missing.isEmpty ? "説明の音声: そろっている"
+                             : "説明の音声: \(missing.count) 個のファイルがない (\(missing.joined(separator: "、")))。App/SpeechAudio に置いて入れ直す")
+                    }
+                    .padding(.top, 8)
+                }
             }
             .padding(24)
             .background(Color.gray.opacity(0.08), in: RoundedRectangle(cornerRadius: 16))

@@ -132,3 +132,16 @@ public struct StackGame: Codable, Equatable, Sendable {
         return result
     }
 }
+
+extension StackGame {
+    /// 止まって待っていたブロックを、t の時刻に動き出させた回 (操作のガイドで最初のタップまで待つ形、1台版の
+    /// single_decisions S48、2台版の app_decisions #77)。待っていた位置 (前の段の真上) から動き出すよう、
+    /// 動き始めた時刻を前にずらして作る。同じ種から作るので、動く向き、速さ、往復の範囲はすぐ動き出す回と同じ
+    public static func startingAboveTop(config: StackConfig, seed: UInt64, atMonoMs t: Int64) -> StackGame {
+        let g = StackGame(config: config, seed: seed, startMonoMs: t)
+        let range = g.travelRange
+        let distance = g.movingFromLeft ? g.top.x - range.lowerBound : range.upperBound - g.top.x
+        let lead = Int64((distance / g.speed * 1000).rounded())
+        return StackGame(config: config, seed: seed, startMonoMs: t - lead)
+    }
+}

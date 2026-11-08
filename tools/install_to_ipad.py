@@ -1,8 +1,9 @@
-"""課題アプリ (iPad) かゲームアプリ (iPhone) を USB でつないだ端末に入れ直し、データが残っていることを確かめる。
+"""課題アプリ (iPad)、ゲームアプリ (iPhone)、1台版 (iPad) を USB か同じ Wi-Fi でつないだ端末に入れ直し、データが残っていることを確かめる。
 
-    python3 tools/install_to_ipad.py <バックアップ先> [--app task|game] [--renew] [--device <名前 または UDID>]
+    python3 tools/install_to_ipad.py <バックアップ先> [--app task|game|single] [--renew] [--device <名前 または UDID>]
 
---app task (既定) は課題アプリを iPad に、--app game はゲームアプリを研究室の iPhone に入れる。
+--app task (既定) は課題アプリを iPad に、--app game はゲームアプリを研究室の iPhone に、--app single は1台版を iPad に入れる。
+1台版と課題アプリは同じ iPad に並べて入れられる (bundle ID が違うので、片方を入れ直してももう片方のデータには触れない)。
 
 無料の Apple アカウントの署名は7日で切れ、切れるとアプリが開かなくなる。そのたびにこれで入れ直す。
 1. 入れ直す前に、アプリの Documents フォルダ全体を <バックアップ先>/<日時>/ に写す
@@ -70,7 +71,7 @@ def same_tree(a: Path, b: Path) -> list[str]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("backup", type=Path, help="入れ直しの前後に写すデータの保存先")
-    parser.add_argument("--app", choices=sorted(APPS), default="task", help="task: 課題アプリ (iPad)、game: ゲームアプリ (iPhone)")
+    parser.add_argument("--app", choices=sorted(APPS), default="task", help="task: 課題アプリ (iPad)、game: ゲームアプリ (iPhone)、single: 1台版 (iPad)")
     parser.add_argument("--renew", action="store_true", help="古い署名を使わず、新しく作らせる")
     parser.add_argument("--device", help="端末の名前か UDID (その種類の実機が1台なら省略可)")
     args = parser.parse_args()

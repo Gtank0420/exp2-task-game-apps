@@ -85,6 +85,7 @@ def validate_game_session(folder: str | Path) -> list[Issue]:
     _check_events(events, meta, r)
     _check_rounds(rounds, events, config, r, completed=bool(meta.get("completed")))
     _check_touches(touches, rounds, config, r)
+    _check_guide(events, touches, r)
     _check_motion(motion, events, config, r)
     return r.issues
 
@@ -286,6 +287,21 @@ def _check_touches(touches: pd.DataFrame, rounds: pd.DataFrame, config: dict, r:
                 r.error(check, f"round_index {idx} part {p['part']}: スワイプから再現した得点 ({game.score}) が"
                         f"記録 ({p['score_end']}) と違います")
                 break
+
+
+def _check_guide(events: pd.DataFrame, touches: pd.DataFrame, r: _Report) -> None:
+    """操作のガイド (app_decisions #77): 最初の操作で消えた回数が出した回数を超えない。積み上げ型の動き出しのタップ
+    (result の stack_start) は、ガイドが消えた回数を超えない。"""
+    check = "操作のガイド"
+    et = events["event_type"].astype(str)
+    shows, hides = int((et == "guide_show").sum()), int((et == "guide_hide").sum())
+    if hides > shows:
+        r.error(check, f"guide_hide ({hides}) が guide_show ({shows}) より多いです")
+    starts = int(touches["result"].fillna("").astype(str).str.contains("stack_start").sum())
+    if starts > hides:
+        r.error(check, f"動き出しのタップ (stack_start、{starts} 回) が、ガイドが消えた回数 ({hides}) より多いです")
+    if shows:
+        r.info(check, f"出した {shows} 回、最初の操作で消えた {hides} 回")
 
 
 def _check_motion(motion: pd.DataFrame, events: pd.DataFrame, config: dict, r: _Report) -> None:

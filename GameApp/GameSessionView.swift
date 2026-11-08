@@ -10,19 +10,28 @@ struct GameSessionView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var autopilot: GameAutopilot?
     @State private var motion = MotionRecorder()
+    /// 実験者画面を開く隅の大きさ (画面の左上の角から)。高さは、上の切り欠きの高さ (iPhone 12 Pro で 47 pt) より十分大きくする
+    static let cornerSize = CGSize(width: 90, height: 110)
 
     var body: some View {
         ZStack(alignment: .topLeading) {
             GameStyle.background.ignoresSafeArea()
             content
-            // 実験者画面を開く隅 (見えない)。ゲームのボタンはここに置かない
+            // 実験者画面を開く隅 (見えない)。ゲームのボタンはここに置かない。
+            // 画面のいちばん上の左の角から測る (安全な領域の外、上の切り欠きの横も含める)。以前は安全な領域の中の
+            // 72 pt 四方だったため、iPhone 12 Pro では角から 47 pt 下にずれていて、角を押しても開かなかった (app_decisions #81)
             Color.clear
-                .frame(width: 72, height: 72)
-                .contentShape(Rectangle())
-                .onLongPressGesture(minimumDuration: Double(controller.config.experimenterCornerPressMs) / 1000) {
-                    controller.openExperimenter()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .overlay(alignment: .topLeading) {
+                    Color.clear
+                        .frame(width: Self.cornerSize.width, height: Self.cornerSize.height)
+                        .contentShape(Rectangle())
+                        .onLongPressGesture(minimumDuration: Double(controller.config.experimenterCornerPressMs) / 1000) {
+                            controller.openExperimenter()
+                        }
+                        .accessibilityIdentifier("experimenter_corner")
                 }
-                .accessibilityIdentifier("experimenter_corner")
+                .ignoresSafeArea()
             if controller.experimenterOpen {
                 ExperimenterPanel(controller: controller, motionIsSynthetic: motion.isSynthetic)
             }
@@ -55,6 +64,8 @@ struct GameSessionView: View {
             UIApplication.shared.isIdleTimerDisabled = true
             UIDevice.current.isBatteryMonitoringEnabled = true
             if !controller.isCompleted { motion.start(controller: controller) }
+            // ゲームの効果音 (この参加者の設定。効果音がない版の記録を再開したときは鳴らさない、app_decisions #76)
+            GameSound.shared.prepare(config: controller.config.sound)
         }
         .onDisappear {
             motion.stop()

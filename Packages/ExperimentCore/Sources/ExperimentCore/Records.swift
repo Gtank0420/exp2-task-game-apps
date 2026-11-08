@@ -85,6 +85,10 @@ public enum EventType: String, CaseIterable, Sendable {
     case memoryWarning = "memory_warning"
     case partialLineRecovered = "partial_line_recovered"
     case metaUpdated = "meta_updated"
+    /// 音声ガイドを流し始めた (画面が出たとき、もう一度聞くボタン。app_decisions #75)
+    case speechStart = "speech_start"
+    /// 音声ガイドを流し終えた、または止めた (画面が変わった、流し直した)
+    case speechEnd = "speech_end"
 }
 
 /// events.csv: 1イベント1行。起きた瞬間に書く。

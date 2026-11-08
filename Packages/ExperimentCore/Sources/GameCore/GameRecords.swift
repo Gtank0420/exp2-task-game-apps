@@ -33,6 +33,10 @@ public enum GameEventType: String, CaseIterable, Sendable {
     case memoryWarning = "memory_warning"
     case partialLineRecovered = "partial_line_recovered"
     case metaUpdated = "meta_updated"
+    /// 操作のガイド (手の動き) を出した。選択画面からゲームを選んだとき (「もう1回」と「新しく始める」を除く。app_decisions #77)
+    case guideShow = "guide_show"
+    /// 最初のゲームの操作でガイドを消した (積み上げ型は、このタップでブロックが動き出した)
+    case guideHide = "guide_hide"
 }
 
 /// game_events.csv: 1イベント1行。起きた瞬間に書く。

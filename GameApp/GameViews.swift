@@ -165,6 +165,31 @@ private struct MergeIcon: View {
 
 // MARK: - 積み上げ型
 
+/// 積み上げ型のタップ。ブロックを落とし (ガイドの間は動き出させ)、結果に合う効果音を鳴らす (app_decisions #76、#77。
+/// 1台版の singleStackDrop と同じ規則)
+@MainActor
+private func gameStackDrop(_ controller: GameController) {
+    guard controller.screen == .playing(.stack) else { return }
+    let wasGuide = controller.guideShown
+    let before = controller.stack?.lastDrop
+    controller.stackDrop(at: SystemClock().now())
+    if wasGuide {
+        if !controller.guideShown { GameSound.shared.play(.stackStart) }
+        return
+    }
+    // 外れると回が終わり、結果画面になる (ブロックの記録は消える)
+    if case .result = controller.screen {
+        GameSound.shared.play(.gameOver)
+        return
+    }
+    guard let game = controller.stack, let drop = game.lastDrop, drop != before else { return }
+    switch drop.result {
+    case .perfect: GameSound.shared.play(drop.grew ? .stackGrow : .stackPerfect(streak: game.perfectStreak))
+    case .placed: GameSound.shared.play(.stackPlace)
+    case .miss: GameSound.shared.play(.gameOver)
+    }
+}
+
 /// 積み上げ型。画面のどこを触っても (右上の戻るを除く) ブロックを落とす。指が触れた瞬間に落とす。
 struct StackPlayView: View {
     let controller: GameController
@@ -183,7 +208,7 @@ struct StackPlayView: View {
                     .onChanged { _ in
                         guard !pressed else { return }
                         pressed = true
-                        controller.stackDrop(at: SystemClock().now())
+                        gameStackDrop(controller)
                     }
                     .onEnded { _ in pressed = false }
             )
@@ -196,8 +221,14 @@ struct StackPlayView: View {
                 .padding(.top, 80)
                 .allowsHitTesting(false)
 
+            // 選択画面から選んだときの操作のガイド (最初のタップで消える、app_decisions #77)
+            if controller.guideShown {
+                GameGuideOverlay(game: .stack).transition(.opacity)
+            }
+
             HomeButton { controller.backToMenu() }
         }
+        .animation(.easeOut(duration: 0.2), value: controller.guideShown)
     }
 
     private func draw(_ ctx: GraphicsContext, size: CGSize) {
@@ -225,7 +256,9 @@ struct StackPlayView: View {
             drawEffect(effect, game: game, ctx, elapsedMs: Double(now - effect.monoMs), rect: rect)
         }
         if !game.isOver {
-            let moving = StackBlock(x: game.movingX(atMonoMs: now), width: game.movingWidth)
+            // ガイドが出ている間は、前の段の真上で止まっている (app_decisions #77)
+            let x = controller.stackMovingX(atMonoMs: now) ?? game.movingX(atMonoMs: now)
+            let moving = StackBlock(x: x, width: game.movingWidth)
             ctx.fill(Path(roundedRect: rect(moving, level: game.blocks.count), cornerRadius: 4),
                      with: .color(GameStyle.stackColor(level: game.blocks.count)))
         }
@@ -308,14 +341,25 @@ struct MergePlayView: View {
                 }
             )
 
+            if controller.guideShown {
+                GameGuideOverlay(game: .merge).transition(.opacity)
+            }
+
             HomeButton { controller.backToMenu() }
         }
+        .animation(.easeOut(duration: 0.2), value: controller.guideShown)
     }
 
     private func swipe(_ direction: SwipeDirection) {
         let before = controller.merge
         controller.mergeSwipe(direction, at: SystemClock().now())
+        // 効果音 (app_decisions #76): 動かせなくなったら終わりの音、合体したら合体の音、動いただけなら軽い音
+        if before != nil, case .result = controller.screen {
+            GameSound.shared.play(.gameOver)
+        }
         guard let before, let after = controller.merge, after.moves == before.moves + 1 else { return }
+        let gained = after.score - before.score
+        GameSound.shared.play(gained > 0 ? .mergeCombine(level: Int(log2(Double(gained)))) : .mergeSlide)
         let next = MergeAnimation(slides: before.slides(direction), after: after.board)
         animation = next
         // 動きが終わったら止める (TimelineView を止めて、毎フレームの描き直しをやめる)
